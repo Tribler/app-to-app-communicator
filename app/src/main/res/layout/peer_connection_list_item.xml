@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TableRow>
+
+        <TextView
+            android:id="@+id/connected"
+            android:layout_weight="1"
+            android:textColor="@android:color/primary_text_light" />
+
+        <TextView
+            android:id="@+id/closed"
+            android:layout_weight="1"
+            android:textColor="@android:color/primary_text_light" />
+    </TableRow>
+
+    <TableRow>
+
+        <TextView
+            android:id="@+id/source_address"
+            android:layout_weight="1"
+            android:textColor="@android:color/secondary_text_light" />
+
+        <TextView
+            android:id="@+id/destination_address"
+            android:layout_weight="1"
+            android:textColor="@android:color/secondary_text_light" />
+    </TableRow>
+
+    <TableRow>
+
+        <TextView
+            android:id="@+id/pex_handshake_label"
+            android:layout_weight="1"
+            android:text="@string/pex_handshake_id"
+            android:textColor="@android:color/secondary_text_light" />
+
+        <TextView
+            android:id="@+id/pex_handshake_id"
+            android:layout_weight="1"
+            android:textColor="@android:color/secondary_text_light" />
+    </TableRow>
+
+</TableLayout>
