@@ -44,8 +44,8 @@ public class PeerConnection extends Observable {
                         e.printStackTrace();
                     }
                     if (isClosed != socket.isClosed()) {
-                        onClosed();
                         isClosed = socket.isClosed();
+                        onClosed();
                         break;
                     }
 
@@ -54,17 +54,19 @@ public class PeerConnection extends Observable {
                     isConnected = socket.isConnected();
 
                     readInputStream();
+                    notifyObservers();
                 }
             }
         }).start();
     }
 
     private void onClosed() {
-        System.out.println("Closed");
+        setChanged();
+        notifyObservers();
     }
 
     private void onConnected() {
-        System.out.println("Connected");
+        setChanged();
         try {
             sendPexHandshake();
         } catch (IOException e) {
@@ -82,11 +84,12 @@ public class PeerConnection extends Observable {
                 System.out.println("Received pex");
                 pex = UtPex.createFromStream(socket.getInputStream());
                 System.out.println(pex);
+                setChanged();
             } else {
-                System.out.println("Received pex handshake");
                 pexHandshake = UtPexHandshake.createFromStream(socket.getInputStream());
                 System.out.println("Received pex message ID: " + pexHandshake.getMessageId());
-                while (socket.getInputStream().available() >= 0) {
+                setChanged();
+                while (socket.getInputStream().available() > 0) {
                     socket.getInputStream().read();
                 }
             }

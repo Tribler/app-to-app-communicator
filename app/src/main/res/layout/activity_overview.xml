@@ -15,20 +15,38 @@
         android:layout_height="wrap_content"
         android:text="Hello World!" />
 
-    <EditText
-        android:id="@+id/ip_address_edit_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+    <LinearLayout
+        android:id="@+id/address_fields"
         android:layout_below="@id/status_text"
-        android:digits="0123456789."
-        android:inputType="phone"
-        android:text="192.168.2.4" />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/ip_address_edit_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.7"
+            android:digits="0123456789."
+            android:inputType="phone"
+            android:text="192.168.2.4" />
+
+        <EditText
+            android:id="@+id/port_edit_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.3"
+            android:width="0dp"
+            android:digits="0123456789."
+            android:inputType="phone"
+            android:text="1873" />
+
+    </LinearLayout>
 
     <TableLayout
         android:id="@+id/overviewButtons"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/ip_address_edit_text">
+        android:layout_below="@id/address_fields">
 
         <TableRow>
 

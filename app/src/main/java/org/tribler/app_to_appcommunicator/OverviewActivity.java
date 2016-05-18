@@ -26,7 +26,7 @@ import java.util.Observer;
 
 public class OverviewActivity extends AppCompatActivity {
 
-    final static int PORT = 1873;
+    final static int DEFAULT_PORT = 1873;
 
     private List<ServerTask> serverTasks;
     private List<ClientTask> clientTasks;
@@ -70,7 +70,7 @@ public class OverviewActivity extends AppCompatActivity {
 
         @Override
         public void update(Observable observable, Object data) {
-            peerConnectionListAdapter.notifyDataSetChanged();
+            updatePeerList();
         }
     }
 
@@ -120,19 +120,19 @@ public class OverviewActivity extends AppCompatActivity {
         public void onClick(View v) {
             setStatus("Connecting to server");
             String ipText = ((EditText) findViewById(R.id.ip_address_edit_text)).getText().toString();
+            String portText = ((EditText) findViewById(R.id.port_edit_text)).getText().toString();
+            int port = Integer.valueOf(portText);
             InetAddress destinationAddress;
             if (!isValidIp(ipText)) {
                 Toast.makeText(getApplicationContext(), "Not a valid IP address", Toast.LENGTH_LONG).show();
                 return;
             }
 
-            ClientTask clientTask = new ClientTask(ipText, PORT, new ClientTask.ClientConnectionCallback() {
+            ClientTask clientTask = new ClientTask(ipText, port, new ClientTask.ClientConnectionCallback() {
 
                 @Override
                 public void onConnection(PeerConnection connection) {
                     addPeerConnection(connection);
-                    connection.addObserver(peerConnectionObserver);
-                    System.out.println("Added " + connection);
                 }
             });
             clientTasks.add(clientTask);
@@ -145,6 +145,17 @@ public class OverviewActivity extends AppCompatActivity {
             @Override
             public void run() {
                 peers.add(connection);
+                peerConnectionListAdapter.notifyDataSetChanged();
+                connection.addObserver(peerConnectionObserver);
+                System.out.println("Added " + connection);
+            }
+        });
+    }
+
+    private void updatePeerList() {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
                 peerConnectionListAdapter.notifyDataSetChanged();
             }
         });
@@ -165,7 +176,7 @@ public class OverviewActivity extends AppCompatActivity {
 
     private void startServer() {
         setStatus("Starting server socket");
-        ServerTask serverTask = new ServerTask(PORT, new ServerTask.ServerConnectionListener() {
+        ServerTask serverTask = new ServerTask(DEFAULT_PORT, new ServerTask.ServerConnectionListener() {
             @Override
             public void onConnection(PeerConnection connection) {
                 addPeerConnection(connection);
