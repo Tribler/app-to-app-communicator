@@ -30,7 +30,6 @@ public class UtPexHandshake {
     public void writeToStream(OutputStream out) throws IOException {
         BencodeWriter writer = new BencodeWriter(out);
         writer.write(utPexHandshake);
-        writer.write("\n");
     }
 
     public boolean supportsPex() {
@@ -38,15 +37,16 @@ public class UtPexHandshake {
     }
 
     public static UtPexHandshake createFromStream(InputStream stream) throws IOException, BencodeReadException {
-//        String s;
-//        BufferedReader r = new BufferedReader(new InputStreamReader(stream));
-//        while (( s = r.readLine()) != null) {
-//            System.out.println(s);
-//        }
         BencodeReader reader = new BencodeReader(stream);
         Map<String, Object> dict = reader.readDict();
         Map<String, Long> message = (Map<String, Long>) dict.get("m");
         long messageId = message.get("ut_pex");
+        String s = "";
+        while (stream.available() > 0 ) {
+            s += stream.read();
+        }
+        System.out.println("Leftover: " + s);
+        System.out.println("Handshake read, available bytes: " + stream.available());
         return new UtPexHandshake(messageId);
     }
 

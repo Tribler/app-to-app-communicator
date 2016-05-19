@@ -34,10 +34,10 @@ public class OverviewActivity extends AppCompatActivity {
     private Button mOpenConnectButton;
     private Button mCloseConnectButton;
     private TextView mStatusText;
-    private PeerConnectionListAdapter peerConnectionListAdapter;
+    private PeerListAdapter peerConnectionListAdapter;
     private PeerConnectionObserver peerConnectionObserver;
 
-    private List<PeerConnection> peers;
+    private List<Peer> peers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,7 +56,7 @@ public class OverviewActivity extends AppCompatActivity {
         mCloseConnectButton.setOnClickListener(new CloseConnectionButtonListener());
 
         ListView peerConnectionListView = (ListView) findViewById(R.id.peer_connection_list_view);
-        peerConnectionListAdapter = new PeerConnectionListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, peers);
+        peerConnectionListAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, peers);
         peerConnectionListView.setAdapter(peerConnectionListAdapter);
 
         peerConnectionObserver = new PeerConnectionObserver();
@@ -64,14 +64,6 @@ public class OverviewActivity extends AppCompatActivity {
         startServer();
         System.out.println("Showing local ip");
         showLocalIpAddress();
-    }
-
-    private class PeerConnectionObserver implements Observer {
-
-        @Override
-        public void update(Observable observable, Object data) {
-            updatePeerList();
-        }
     }
 
     private void showLocalIpAddress() {
@@ -114,40 +106,19 @@ public class OverviewActivity extends AppCompatActivity {
         });
     }
 
-    private class ConnectButtonListener implements View.OnClickListener {
-
-        @Override
-        public void onClick(View v) {
-            setStatus("Connecting to server");
-            String ipText = ((EditText) findViewById(R.id.ip_address_edit_text)).getText().toString();
-            String portText = ((EditText) findViewById(R.id.port_edit_text)).getText().toString();
-            int port = Integer.valueOf(portText);
-            InetAddress destinationAddress;
-            if (!isValidIp(ipText)) {
-                Toast.makeText(getApplicationContext(), "Not a valid IP address", Toast.LENGTH_LONG).show();
-                return;
-            }
-
-            ClientTask clientTask = new ClientTask(ipText, port, new ClientTask.ClientConnectionCallback() {
-
-                @Override
-                public void onConnection(PeerConnection connection) {
-                    addPeerConnection(connection);
-                }
-            });
-            clientTasks.add(clientTask);
-            clientTask.start();
-        }
-    }
-
-    private void addPeerConnection(final PeerConnection connection) {
+    private void addPeer(final Peer peer) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
+
             @Override
             public void run() {
-                peers.add(connection);
+                peers.add(peer);
+                if (peer.hasConnection()) {
+                    PeerConnection connection = peer.getPeerConnection();
+                    connection.setPeers(peers);
+                    connection.addObserver(peerConnectionObserver);
+                }
                 peerConnectionListAdapter.notifyDataSetChanged();
-                connection.addObserver(peerConnectionObserver);
-                System.out.println("Added " + connection);
+                System.out.println("Added " + peer);
             }
         });
     }
@@ -178,23 +149,58 @@ public class OverviewActivity extends AppCompatActivity {
         setStatus("Starting server socket");
         ServerTask serverTask = new ServerTask(DEFAULT_PORT, new ServerTask.ServerConnectionListener() {
             @Override
-            public void onConnection(PeerConnection connection) {
-                addPeerConnection(connection);
+            public void onConnection(Peer peer) {
+                addPeer(peer);
             }
         });
         serverTasks.add(serverTask);
         serverTask.start();
     }
 
-
     private void stopServer() {
         setStatus("Closing client socket");
-        for (PeerConnection connection : peers) {
+        for (Peer peer : peers) {
             try {
-                connection.close();
+                if (peer.hasConnection()) {
+                    peer.getPeerConnection().close();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private class PeerConnectionObserver implements Observer {
+
+        @Override
+        public void update(Observable observable, Object data) {
+            updatePeerList();
+        }
+    }
+
+    private class ConnectButtonListener implements View.OnClickListener {
+
+        @Override
+        public void onClick(View v) {
+            setStatus("Connecting to server");
+            String ipText = ((EditText) findViewById(R.id.ip_address_edit_text)).getText().toString();
+            String portText = ((EditText) findViewById(R.id.port_edit_text)).getText().toString();
+            int port = Integer.valueOf(portText);
+            InetAddress destinationAddress;
+            if (!isValidIp(ipText)) {
+                Toast.makeText(getApplicationContext(), "Not a valid IP address", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            ClientTask clientTask = new ClientTask(ipText, port, new ClientTask.ClientConnectionCallback() {
+
+                @Override
+                public void onConnection(Peer peer) {
+                    addPeer(peer);
+                }
+            });
+            clientTasks.add(clientTask);
+            clientTask.start();
         }
     }
 
@@ -203,9 +209,9 @@ public class OverviewActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             setStatus("Closing client socket");
-            for (PeerConnection connection : peers) {
+            for (Peer peer : peers) {
                 try {
-                    connection.close();
+                    peer.getPeerConnection().close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

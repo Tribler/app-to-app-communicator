@@ -7,23 +7,22 @@ import org.tribler.app_to_appcommunicator.PEX.UtPex;
 import org.tribler.app_to_appcommunicator.PEX.UtPexHandshake;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.Socket;
-import java.util.Collection;
+import java.util.List;
 import java.util.Observable;
 
 /**
  * Created by jaap on 5/3/16.
  */
 public class PeerConnection extends Observable {
+    final static int PEX_MESSAGE_ID = 1;
     private Socket socket;
     private boolean isIncoming;
-    final static int PEX_MESSAGE_ID = 1;
     private boolean isConnected;
     private boolean isClosed;
     private UtPexHandshake pexHandshake;
     private UtPex pex;
-
+    private List<Peer> peers;
 
     public PeerConnection(Socket socket, boolean isIncoming) {
         this.socket = socket;
@@ -55,6 +54,15 @@ public class PeerConnection extends Observable {
 
                     readInputStream();
                     notifyObservers();
+
+                    if (hasDoneHandshake()) {
+                        try {
+                            System.out.println("Sending pex message");
+                            sendPexMessage();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             }
         }).start();
@@ -121,10 +129,16 @@ public class PeerConnection extends Observable {
         pexHandshake.writeToStream(socket.getOutputStream());
     }
 
-    public void sendPexMessage(Collection<? extends Inet4Address> peers) throws IOException {
+    public void sendPexMessage() throws IOException {
+        if (peers == null) {
+            System.out.println("Peers null, can't send");
+            return;
+        }
         System.out.println("Sending PEX");
         UtPex pex = new UtPex();
-        pex.addAll(peers);
+        for (Peer peer : peers) {
+            pex.add(peer.getExternalAddress());
+        }
         pex.writeToStream(socket.getOutputStream());
     }
 
@@ -144,6 +158,15 @@ public class PeerConnection extends Observable {
 
     public UtPexHandshake getPexHandshake() {
         return pexHandshake;
+    }
+
+
+    public List<Peer> getPeers() {
+        return peers;
+    }
+
+    public void setPeers(List<Peer> peers) {
+        this.peers = peers;
     }
 
     public UtPex getPex() {

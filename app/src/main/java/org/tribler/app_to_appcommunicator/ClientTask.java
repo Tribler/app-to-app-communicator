@@ -1,9 +1,7 @@
 package org.tribler.app_to_appcommunicator;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
 
 /**
  * Created by jaap on 4/26/16.
@@ -37,8 +35,9 @@ public class ClientTask {
                     socket = new Socket(address, port);
                     if (clientConnectionListener != null) {
                         PeerConnection connection = new PeerConnection(socket, false);
+                        Peer peer = new Peer(connection);
                         if (clientConnectionListener != null)
-                            clientConnectionListener.onConnection(connection);
+                            clientConnectionListener.onConnection(peer);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -51,6 +50,6 @@ public class ClientTask {
     }
 
     public interface ClientConnectionCallback {
-        void onConnection(PeerConnection connection);
+        void onConnection(Peer peer);
     }
 }

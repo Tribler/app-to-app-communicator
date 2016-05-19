@@ -12,10 +12,10 @@ import java.util.List;
 /**
  * Created by jaap on 5/4/16.
  */
-public class PeerConnectionListAdapter extends ArrayAdapter<PeerConnection> {
+public class PeerListAdapter extends ArrayAdapter<Peer> {
     private final Context context;
 
-    public PeerConnectionListAdapter(Context context, int resource, List<PeerConnection> peerConnectionList) {
+    public PeerListAdapter(Context context, int resource, List<Peer> peerConnectionList) {
         super(context, resource, peerConnectionList);
         this.context = context;
     }
@@ -39,12 +39,21 @@ public class PeerConnectionListAdapter extends ArrayAdapter<PeerConnection> {
         }
 
 
-        PeerConnection connection = getItem(position);
-        holder.mConnected.setText(connection.isConnected() ? "Connected" : "Not connected");
-        holder.mOpened.setText(connection.isClosed() ? "Closed" : "Opened");
-        holder.mSourceAddress.setText(String.format("%s:%d", connection.getSocket().getLocalAddress(), connection.getSocket().getLocalPort()));
-        holder.mDestinationAddress.setText(String.format("%s:%d", connection.getSocket().getInetAddress(), connection.getSocket().getPort()));
-        holder.mPexId.setText(connection.hasDoneHandshake() ? String.valueOf(connection.getPexHandshake().getMessageId()) : "None");
+        Peer peer = getItem(position);
+        if (peer.hasConnection()) {
+            PeerConnection connection = peer.getPeerConnection();
+            holder.mConnected.setText(connection.isConnected() ? "Connected" : "Not connected");
+            holder.mOpened.setText(connection.isClosed() ? "Closed" : "Opened");
+            holder.mSourceAddress.setText(String.format("%s:%d", connection.getSocket().getLocalAddress(), connection.getSocket().getLocalPort()));
+            holder.mDestinationAddress.setText(String.format("%s:%d", connection.getSocket().getInetAddress(), connection.getSocket().getPort()));
+            holder.mPexId.setText(connection.hasDoneHandshake() ? String.valueOf(connection.getPexHandshake().getMessageId()) : "None");
+        } else {
+            holder.mConnected.setText("Not connected");
+            holder.mOpened.setText("");
+            holder.mSourceAddress.setText("");
+            holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
+            holder.mPexId.setText("");
+        }
 
         return convertView;
     }
