@@ -28,6 +28,7 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
             convertView = inflater.inflate(R.layout.peer_connection_list_item, parent, false);
 
             holder = new ViewHolder();
+            holder.mStatusIndicator = (TextView) convertView.findViewById(R.id.status_indicator);
             holder.mConnected = (TextView) convertView.findViewById(R.id.connected);
             holder.mOpened = (TextView) convertView.findViewById(R.id.closed);
             holder.mSourceAddress = (TextView) convertView.findViewById(R.id.source_address);
@@ -42,12 +43,20 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         Peer peer = getItem(position);
         if (peer.hasConnection()) {
             PeerConnection connection = peer.getPeerConnection();
+            if (connection.isClosed()) {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusClosed));
+            } else if (connection.isConnected()) {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnected));
+            } else {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
+            }
             holder.mConnected.setText(connection.isConnected() ? "Connected" : "Not connected");
             holder.mOpened.setText(connection.isClosed() ? "Closed" : "Opened");
             holder.mSourceAddress.setText(String.format("%s:%d", connection.getSocket().getLocalAddress(), connection.getSocket().getLocalPort()));
             holder.mDestinationAddress.setText(String.format("%s:%d", connection.getSocket().getInetAddress(), connection.getSocket().getPort()));
             holder.mPexId.setText(connection.hasDoneHandshake() ? String.valueOf(connection.getPexHandshake().getMessageId()) : "None");
         } else {
+            holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
             holder.mConnected.setText("Not connected");
             holder.mOpened.setText("");
             holder.mSourceAddress.setText("");
@@ -59,6 +68,7 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
     }
 
     static class ViewHolder {
+        TextView mStatusIndicator;
         TextView mConnected;
         TextView mOpened;
         TextView mSourceAddress;

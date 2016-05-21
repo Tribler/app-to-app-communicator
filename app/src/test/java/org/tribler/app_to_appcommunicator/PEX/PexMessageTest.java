@@ -16,7 +16,7 @@ import java.net.UnknownHostException;
 /**
  * Created by jaap on 5/3/16.
  */
-public class UtPexTest {
+public class PexMessageTest {
     Inet4Address address1;
     Inet4Address address2;
     Inet4Address address3;
@@ -30,33 +30,33 @@ public class UtPexTest {
 
     @Test
     public void writeEqualsReadPex() throws Exception {
-        UtPex pex = new UtPex();
+        PexMessage pex = new PexMessage();
         pex.add(address1);
         pex.add(address2);
         pex.add(address3);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         pex.writeToStream(stream);
-        UtPex pex2 = UtPex.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
+        PexMessage pex2 = PexMessage.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
         Assert.assertEquals(pex, pex2);
     }
 
     @Test
     public void PexContainsAddedAddress() throws IOException, BencodeReadException, PexException {
-        UtPex pex = new UtPex();
+        PexMessage pex = new PexMessage();
         pex.add(address1);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         pex.writeToStream(stream);
-        UtPex pex2 = UtPex.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
+        PexMessage pex2 = PexMessage.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
         Assert.assertTrue(pex2.contains(address1));
     }
 
     @Test
     public void PexDoesntContainNotAddedAddress() throws IOException, BencodeReadException, PexException {
-        UtPex pex = new UtPex();
+        PexMessage pex = new PexMessage();
         pex.add(address1);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         pex.writeToStream(stream);
-        UtPex pex2 = UtPex.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
+        PexMessage pex2 = PexMessage.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
         Assert.assertFalse(pex2.contains(address2));
     }
 }

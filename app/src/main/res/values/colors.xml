@@ -3,4 +3,8 @@
     <color name="colorPrimary">#df1f48</color>
     <color name="colorPrimaryDark">#ab1a39</color>
     <color name="colorAccent">#fdb61b</color>
+    <color name="colorStatusConnected">#8bc34a</color>
+    <color name="colorStatusConnecting">#fdb61b</color>
+    <color name="colorStatusCantConnect">#ff1744</color>
+    <color name="colorStatusClosed">#5c6bc0</color>
 </resources>

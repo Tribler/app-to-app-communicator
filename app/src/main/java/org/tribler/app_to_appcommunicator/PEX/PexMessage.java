@@ -17,9 +17,9 @@ import java.util.Map;
 /**
  * Created by jaap on 5/2/16.
  */
-public class UtPex extends HashSet<Inet4Address> {
+public class PexMessage extends HashSet<Inet4Address> {
 
-    public static UtPex createFromStream(InputStream stream) throws IOException, BencodeReadException, PexException {
+    public static PexMessage createFromStream(InputStream stream) throws IOException, BencodeReadException, PexException {
         BencodeReader reader = new BencodeReader(stream);
         Map<String, Object> dict = reader.readDict();
         System.out.println("After reading dict " + stream.available() + " bytes left");
@@ -27,11 +27,11 @@ public class UtPex extends HashSet<Inet4Address> {
         List peers = (List) dict.get("added");
         System.out.println(peers);
 
-        UtPex utPex = new UtPex();
+        PexMessage pexMessage = new PexMessage();
         for (Object peer : peers) {
-            utPex.add((Inet4Address) Inet4Address.getByName((String) peer));
+            pexMessage.add((Inet4Address) Inet4Address.getByName((String) peer));
         }
-        return utPex;
+        return pexMessage;
     }
 
     public void writeToStream(OutputStream out) throws IOException {

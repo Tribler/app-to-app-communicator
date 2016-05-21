@@ -13,36 +13,36 @@ import java.io.IOException;
 /**
  * Created by jaap on 5/3/16.
  */
-public class UtPexHandshakeTest {
+public class PexMessageHandshakeTest {
 
     @Test
     public void writeEqualsReadPex() throws Exception {
-        UtPexHandshake handshake1 = new UtPexHandshake(1);
+        PexHandshake handshake1 = new PexHandshake(1);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         handshake1.writeToStream(stream);
-        UtPexHandshake handshake2 = UtPexHandshake.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
+        PexHandshake handshake2 = PexHandshake.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
         Assert.assertEquals(handshake1, handshake2);
     }
 
     @Test
     public void PexHandshakeIdCheck() throws IOException, BencodeReadException, PexException {
         int id = 34;
-        UtPexHandshake handshake1 = new UtPexHandshake(id);
+        PexHandshake handshake1 = new PexHandshake(id);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         handshake1.writeToStream(stream);
-        UtPexHandshake handshake2 = UtPexHandshake.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
+        PexHandshake handshake2 = PexHandshake.createFromStream(new ByteArrayInputStream(stream.toByteArray()));
         Assert.assertEquals(handshake1.getMessageId(), handshake2.getMessageId());
     }
 
     @Test
     public void PexHandshakeSupportsPex() {
-        UtPexHandshake handshake = new UtPexHandshake(3);
+        PexHandshake handshake = new PexHandshake(3);
         Assert.assertTrue(handshake.supportsPex());
     }
 
     @Test
     public void PexHandshakeDoesntSupportPex() {
-        UtPexHandshake handshake = new UtPexHandshake(0);
+        PexHandshake handshake = new PexHandshake(0);
         Assert.assertFalse(handshake.supportsPex());
     }
 }

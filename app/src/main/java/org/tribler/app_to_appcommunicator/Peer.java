@@ -1,8 +1,11 @@
 package org.tribler.app_to_appcommunicator;
 
+import android.os.AsyncTask;
+
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Socket;
+import java.util.Observer;
 
 /**
  * Created by jaap on 5/19/16.
@@ -12,6 +15,7 @@ public class Peer {
     private Inet4Address externalAddress;
     private Inet4Address internalAddress;
     private int port;
+    private Observer connectionObserver;
 
     public Peer(int port, Inet4Address externalAddress) {
         this.port = port;
@@ -22,6 +26,12 @@ public class Peer {
         this.peerConnection = peerConnection;
         this.port = peerConnection.getSocket().getPort();
         this.externalAddress = (Inet4Address) peerConnection.getSocket().getInetAddress();
+    }
+
+    public void setConnectionObserver(Observer connectionObserver) {
+        this.connectionObserver = connectionObserver;
+        if (peerConnection != null)
+            peerConnection.addObserver(connectionObserver);
     }
 
     public int getPort() {
@@ -52,14 +62,8 @@ public class Peer {
         return peerConnection != null;
     }
 
-    public boolean connect() {
-        try {
-            peerConnection = new PeerConnection(new Socket(externalAddress, port), false);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public void connect() {
+        new ConnectionTask().execute();
     }
 
     @Override
@@ -70,5 +74,20 @@ public class Peer {
                 ", internalAddress=" + internalAddress +
                 ", port=" + port +
                 '}';
+    }
+
+    private class ConnectionTask extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            try {
+                peerConnection = new PeerConnection(new Socket(externalAddress, port), false);
+                if (connectionObserver != null)
+                    peerConnection.addObserver(connectionObserver);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
     }
 }

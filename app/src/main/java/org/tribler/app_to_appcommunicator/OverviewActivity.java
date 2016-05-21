@@ -13,23 +13,26 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.tribler.app_to_appcommunicator.PEX.PexListener;
+import org.tribler.app_to_appcommunicator.PEX.PexMessage;
+
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
-public class OverviewActivity extends AppCompatActivity {
+public class OverviewActivity extends AppCompatActivity implements PexListener {
 
     final static int DEFAULT_PORT = 1873;
 
     private List<ServerTask> serverTasks;
-    private List<ClientTask> clientTasks;
 
     private Button mOpenConnectButton;
     private Button mCloseConnectButton;
@@ -45,7 +48,6 @@ public class OverviewActivity extends AppCompatActivity {
         setContentView(R.layout.activity_overview);
 
         peers = new ArrayList<>();
-        clientTasks = new ArrayList<>();
         serverTasks = new ArrayList<>();
 
         mStatusText = (TextView) findViewById(R.id.status_text);
@@ -112,11 +114,12 @@ public class OverviewActivity extends AppCompatActivity {
             @Override
             public void run() {
                 peers.add(peer);
-                if (peer.hasConnection()) {
-                    PeerConnection connection = peer.getPeerConnection();
-                    connection.setPeers(peers);
-                    connection.addObserver(peerConnectionObserver);
-                }
+                peer.setConnectionObserver(peerConnectionObserver);
+//                if (peer.hasConnection()) {
+//                    PeerConnection connection = peer.getPeerConnection();
+//                    connection.setPeers(peers);
+//                    connection.addObserver(peerConnectionObserver);
+//                }
                 peerConnectionListAdapter.notifyDataSetChanged();
                 System.out.println("Added " + peer);
             }
@@ -124,15 +127,6 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private void updatePeerList() {
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                peerConnectionListAdapter.notifyDataSetChanged();
-            }
-        });
-    }
-
-    private void updateStatus() {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -170,6 +164,11 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onPex(PexMessage pex) {
+        System.out.println("Pex message recieved in overviewactivity: " + pex);
+    }
+
     private class PeerConnectionObserver implements Observer {
 
         @Override
@@ -192,16 +191,15 @@ public class OverviewActivity extends AppCompatActivity {
                 return;
             }
 
-            ClientTask clientTask = new ClientTask(ipText, port, new ClientTask.ClientConnectionCallback() {
-
-                @Override
-                public void onConnection(Peer peer) {
-                    addPeer(peer);
-                }
-            });
-            clientTasks.add(clientTask);
-            clientTask.start();
+            try {
+                Peer peer = new Peer(port, (Inet4Address) Inet4Address.getByName(ipText));
+                addPeer(peer);
+                peer.connect();
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
         }
+
     }
 
     private class CloseConnectionButtonListener implements View.OnClickListener {
@@ -211,7 +209,8 @@ public class OverviewActivity extends AppCompatActivity {
             setStatus("Closing client socket");
             for (Peer peer : peers) {
                 try {
-                    peer.getPeerConnection().close();
+                    if (peer.hasConnection())
+                        peer.getPeerConnection().close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

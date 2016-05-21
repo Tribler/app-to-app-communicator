@@ -4,10 +4,8 @@ import com.hypirion.bencode.BencodeReadException;
 import com.hypirion.bencode.BencodeReader;
 import com.hypirion.bencode.BencodeWriter;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,11 +13,11 @@ import java.util.Map;
 /**
  * Created by jaap on 5/2/16.
  */
-public class UtPexHandshake {
+public class PexHandshake {
     HashMap<String, Map<String, Long>> utPexHandshake;
     private long messageId;
 
-    public UtPexHandshake(long messageId) {
+    public PexHandshake(long messageId) {
         this.utPexHandshake = new HashMap<>();
         this.messageId = messageId;
         HashMap<String, Long> utPexDict = new HashMap<>();
@@ -36,7 +34,7 @@ public class UtPexHandshake {
         return messageId >= 1;
     }
 
-    public static UtPexHandshake createFromStream(InputStream stream) throws IOException, BencodeReadException {
+    public static PexHandshake createFromStream(InputStream stream) throws IOException, BencodeReadException {
         BencodeReader reader = new BencodeReader(stream);
         Map<String, Object> dict = reader.readDict();
         Map<String, Long> message = (Map<String, Long>) dict.get("m");
@@ -47,7 +45,7 @@ public class UtPexHandshake {
         }
         System.out.println("Leftover: " + s);
         System.out.println("Handshake read, available bytes: " + stream.available());
-        return new UtPexHandshake(messageId);
+        return new PexHandshake(messageId);
     }
 
     public long getMessageId() {
@@ -59,7 +57,7 @@ public class UtPexHandshake {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        UtPexHandshake handshake = (UtPexHandshake) o;
+        PexHandshake handshake = (PexHandshake) o;
 
         if (messageId != handshake.messageId) return false;
         return utPexHandshake != null ? utPexHandshake.equals(handshake.utPexHandshake) : handshake.utPexHandshake == null;

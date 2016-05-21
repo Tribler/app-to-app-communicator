@@ -3,8 +3,9 @@ package org.tribler.app_to_appcommunicator;
 import com.hypirion.bencode.BencodeReadException;
 
 import org.tribler.app_to_appcommunicator.PEX.PexException;
-import org.tribler.app_to_appcommunicator.PEX.UtPex;
-import org.tribler.app_to_appcommunicator.PEX.UtPexHandshake;
+import org.tribler.app_to_appcommunicator.PEX.PexListener;
+import org.tribler.app_to_appcommunicator.PEX.PexMessage;
+import org.tribler.app_to_appcommunicator.PEX.PexHandshake;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -20,9 +21,10 @@ public class PeerConnection extends Observable {
     private boolean isIncoming;
     private boolean isConnected;
     private boolean isClosed;
-    private UtPexHandshake pexHandshake;
-    private UtPex pex;
+    private PexHandshake pexHandshake;
+    private PexMessage pex;
     private List<Peer> peers;
+    private PexListener pexListener;
 
     public PeerConnection(Socket socket, boolean isIncoming) {
         this.socket = socket;
@@ -30,6 +32,10 @@ public class PeerConnection extends Observable {
         this.isConnected = false;
         this.isClosed = false;
         startUpdateThread();
+    }
+
+    public void setPexListener(PexListener pexListener) {
+        this.pexListener = pexListener;
     }
 
     private void startUpdateThread() {
@@ -55,9 +61,8 @@ public class PeerConnection extends Observable {
                     readInputStream();
                     notifyObservers();
 
-                    if (hasDoneHandshake()) {
+                    if (hasDoneHandshake() && pex == null) {
                         try {
-                            System.out.println("Sending pex message");
                             sendPexMessage();
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -82,6 +87,11 @@ public class PeerConnection extends Observable {
         }
     }
 
+    private void notifyPexListener() {
+        if (pexListener != null) {
+            pexListener.onPex(pex);
+        }
+    }
 
     private void readInputStream() {
         try {
@@ -90,11 +100,14 @@ public class PeerConnection extends Observable {
 
             if (hasDoneHandshake()) {
                 System.out.println("Received pex");
-                pex = UtPex.createFromStream(socket.getInputStream());
-                System.out.println(pex);
+                pex = PexMessage.createFromStream(socket.getInputStream());
+                notifyPexListener();
                 setChanged();
+                while (socket.getInputStream().available() > 0) {
+                    socket.getInputStream().read();
+                }
             } else {
-                pexHandshake = UtPexHandshake.createFromStream(socket.getInputStream());
+                pexHandshake = PexHandshake.createFromStream(socket.getInputStream());
                 System.out.println("Received pex message ID: " + pexHandshake.getMessageId());
                 setChanged();
                 while (socket.getInputStream().available() > 0) {
@@ -125,7 +138,7 @@ public class PeerConnection extends Observable {
 
     public void sendPexHandshake() throws IOException {
         System.out.println("Sending PEX handshake");
-        UtPexHandshake pexHandshake = new UtPexHandshake(PEX_MESSAGE_ID);
+        PexHandshake pexHandshake = new PexHandshake(PEX_MESSAGE_ID);
         pexHandshake.writeToStream(socket.getOutputStream());
     }
 
@@ -135,7 +148,7 @@ public class PeerConnection extends Observable {
             return;
         }
         System.out.println("Sending PEX");
-        UtPex pex = new UtPex();
+        PexMessage pex = new PexMessage();
         for (Peer peer : peers) {
             pex.add(peer.getExternalAddress());
         }
@@ -156,7 +169,7 @@ public class PeerConnection extends Observable {
         return isIncoming;
     }
 
-    public UtPexHandshake getPexHandshake() {
+    public PexHandshake getPexHandshake() {
         return pexHandshake;
     }
 
@@ -169,7 +182,7 @@ public class PeerConnection extends Observable {
         this.peers = peers;
     }
 
-    public UtPex getPex() {
+    public PexMessage getPex() {
         return pex;
     }
 
