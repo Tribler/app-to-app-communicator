@@ -14,6 +14,7 @@ public class ServerTask {
     private ServerSocket serverSocket;
     private ServerConnectionListener serverConnectionListener;
     private Thread serverThread;
+    private boolean running;
 
     public ServerTask(int port, ServerConnectionListener serverConnectionListener) {
         this.port = port;
@@ -28,12 +29,13 @@ public class ServerTask {
         if (serverThread != null) {
             return false;
         }
+        running = true;
         serverThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     serverSocket = new ServerSocket(port);
-                    while (true) {
+                    while (running) {
                         Socket socket = serverSocket.accept();
                         PeerConnection connection = new PeerConnection(socket, true);
                         Peer peer = new Peer(connection);
@@ -49,9 +51,8 @@ public class ServerTask {
         return true;
     }
 
-    public void stop() throws IOException {
-        if (serverSocket != null && !serverSocket.isClosed())
-            serverSocket.close();
+    public void stop() {
+        running = false;
     }
 
     public interface ServerConnectionListener {

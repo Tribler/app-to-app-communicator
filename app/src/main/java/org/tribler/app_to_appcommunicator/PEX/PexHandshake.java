@@ -43,8 +43,6 @@ public class PexHandshake {
         while (stream.available() > 0 ) {
             s += stream.read();
         }
-        System.out.println("Leftover: " + s);
-        System.out.println("Handshake read, available bytes: " + stream.available());
         return new PexHandshake(messageId);
     }
 

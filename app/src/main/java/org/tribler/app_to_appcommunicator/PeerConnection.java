@@ -3,9 +3,9 @@ package org.tribler.app_to_appcommunicator;
 import com.hypirion.bencode.BencodeReadException;
 
 import org.tribler.app_to_appcommunicator.PEX.PexException;
+import org.tribler.app_to_appcommunicator.PEX.PexHandshake;
 import org.tribler.app_to_appcommunicator.PEX.PexListener;
 import org.tribler.app_to_appcommunicator.PEX.PexMessage;
-import org.tribler.app_to_appcommunicator.PEX.PexHandshake;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -23,8 +23,8 @@ public class PeerConnection extends Observable {
     private boolean isClosed;
     private PexHandshake pexHandshake;
     private PexMessage pex;
-    private List<Peer> peers;
     private PexListener pexListener;
+    private boolean running;
 
     public PeerConnection(Socket socket, boolean isIncoming) {
         this.socket = socket;
@@ -39,10 +39,11 @@ public class PeerConnection extends Observable {
     }
 
     private void startUpdateThread() {
+        running = true;
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while (true) {
+                while (running) {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
@@ -60,14 +61,6 @@ public class PeerConnection extends Observable {
 
                     readInputStream();
                     notifyObservers();
-
-                    if (hasDoneHandshake() && pex == null) {
-                        try {
-                            sendPexMessage();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
                 }
             }
         }).start();
@@ -99,7 +92,6 @@ public class PeerConnection extends Observable {
                 return;
 
             if (hasDoneHandshake()) {
-                System.out.println("Received pex");
                 pex = PexMessage.createFromStream(socket.getInputStream());
                 notifyPexListener();
                 setChanged();
@@ -108,7 +100,6 @@ public class PeerConnection extends Observable {
                 }
             } else {
                 pexHandshake = PexHandshake.createFromStream(socket.getInputStream());
-                System.out.println("Received pex message ID: " + pexHandshake.getMessageId());
                 setChanged();
                 while (socket.getInputStream().available() > 0) {
                     socket.getInputStream().read();
@@ -137,20 +128,18 @@ public class PeerConnection extends Observable {
     }
 
     public void sendPexHandshake() throws IOException {
-        System.out.println("Sending PEX handshake");
         PexHandshake pexHandshake = new PexHandshake(PEX_MESSAGE_ID);
         pexHandshake.writeToStream(socket.getOutputStream());
     }
 
-    public void sendPexMessage() throws IOException {
+    public void sendPexMessage(List<Peer> peers) throws IOException {
         if (peers == null) {
             System.out.println("Peers null, can't send");
             return;
         }
-        System.out.println("Sending PEX");
         PexMessage pex = new PexMessage();
         for (Peer peer : peers) {
-            pex.add(peer.getExternalAddress());
+            pex.add(peer);
         }
         pex.writeToStream(socket.getOutputStream());
     }
@@ -173,20 +162,20 @@ public class PeerConnection extends Observable {
         return pexHandshake;
     }
 
-
-    public List<Peer> getPeers() {
-        return peers;
-    }
-
-    public void setPeers(List<Peer> peers) {
-        this.peers = peers;
-    }
-
     public PexMessage getPex() {
         return pex;
     }
 
     public boolean hasDoneHandshake() {
         return pexHandshake != null;
+    }
+
+    public void stop() {
+        running = false;
+        try {
+            close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import org.tribler.app_to_appcommunicator.PEX.PexListener;
 import org.tribler.app_to_appcommunicator.PEX.PexMessage;
+import org.tribler.app_to_appcommunicator.PEX.PexSender;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -39,6 +40,8 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
     private TextView mStatusText;
     private PeerListAdapter peerConnectionListAdapter;
     private PeerConnectionObserver peerConnectionObserver;
+    private PexSender pexSender;
+    private PexListener pexListener = this;
 
     private List<Peer> peers;
 
@@ -62,6 +65,7 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
         peerConnectionListView.setAdapter(peerConnectionListAdapter);
 
         peerConnectionObserver = new PeerConnectionObserver();
+        pexSender = new PexSender(peers);
 
         startServer();
         System.out.println("Showing local ip");
@@ -108,6 +112,15 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
         });
     }
 
+    private void showToast(final String toast) {
+        new Handler(getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), toast, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private void addPeer(final Peer peer) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
 
@@ -115,11 +128,6 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
             public void run() {
                 peers.add(peer);
                 peer.setConnectionObserver(peerConnectionObserver);
-//                if (peer.hasConnection()) {
-//                    PeerConnection connection = peer.getPeerConnection();
-//                    connection.setPeers(peers);
-//                    connection.addObserver(peerConnectionObserver);
-//                }
                 peerConnectionListAdapter.notifyDataSetChanged();
                 System.out.println("Added " + peer);
             }
@@ -145,6 +153,7 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
             @Override
             public void onConnection(Peer peer) {
                 addPeer(peer);
+                showToast("Received connection from " + peer.getExternalAddress());
             }
         });
         serverTasks.add(serverTask);
@@ -166,7 +175,33 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
 
     @Override
     public void onPex(PexMessage pex) {
-        System.out.println("Pex message recieved in overviewactivity: " + pex);
+        boolean has;
+        for (Peer pexPeer : pex) {
+            has = false;
+            for (Peer localPeer : peers) {
+                if (pexPeer.getExternalAddress().equals(localPeer.getExternalAddress())) {
+                    has = true;
+                    break;
+                }
+            }
+            if (!has) {
+                addPeer(pexPeer);
+                pexPeer.connect();
+            }
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+//        for (ServerTask serverTask : serverTasks) {
+//            serverTask.stop();
+//        }
+//        for (Peer peer : peers) {
+//            if (peer.hasConnection())
+//                peer.getPeerConnection().stop();
+//        }
+//        pexSender.stop();
     }
 
     private class PeerConnectionObserver implements Observer {
@@ -174,6 +209,8 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
         @Override
         public void update(Observable observable, Object data) {
             updatePeerList();
+            PeerConnection connection = (PeerConnection) observable;
+            connection.setPexListener(pexListener);
         }
     }
 
@@ -185,7 +222,6 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
             String ipText = ((EditText) findViewById(R.id.ip_address_edit_text)).getText().toString();
             String portText = ((EditText) findViewById(R.id.port_edit_text)).getText().toString();
             int port = Integer.valueOf(portText);
-            InetAddress destinationAddress;
             if (!isValidIp(ipText)) {
                 Toast.makeText(getApplicationContext(), "Not a valid IP address", Toast.LENGTH_LONG).show();
                 return;
