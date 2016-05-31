@@ -20,56 +20,122 @@ import org.tribler.app_to_appcommunicator.PEX.PexSender;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
 public class OverviewActivity extends AppCompatActivity implements PexListener {
 
     final static int DEFAULT_PORT = 1873;
+    private static final int BUFFER_SIZE = 1024;
 
     private List<ServerTask> serverTasks;
 
     private Button mOpenConnectButton;
-    private Button mCloseConnectButton;
     private TextView mStatusText;
     private PeerListAdapter peerConnectionListAdapter;
-    private PeerConnectionObserver peerConnectionObserver;
     private PexSender pexSender;
     private PexListener pexListener = this;
+    private DatagramChannel channel;
 
-    private List<Peer> peers;
+    private Map<InetSocketAddress, Peer> peers;
+    private List<Peer> peerList;
+    private boolean running;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_overview);
 
-        peers = new ArrayList<>();
+        peers = new HashMap<>();
+        peerList = new ArrayList<>();
         serverTasks = new ArrayList<>();
 
         mStatusText = (TextView) findViewById(R.id.status_text);
         mOpenConnectButton = (Button) findViewById(R.id.start_connection_button);
-        mCloseConnectButton = (Button) findViewById(R.id.close_connection_button);
 
         mOpenConnectButton.setOnClickListener(new ConnectButtonListener());
-        mCloseConnectButton.setOnClickListener(new CloseConnectionButtonListener());
 
         ListView peerConnectionListView = (ListView) findViewById(R.id.peer_connection_list_view);
-        peerConnectionListAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, peers);
+        peerConnectionListAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, peerList);
         peerConnectionListView.setAdapter(peerConnectionListAdapter);
-
-        peerConnectionObserver = new PeerConnectionObserver();
-        pexSender = new PexSender(peers);
-
-        startServer();
-        System.out.println("Showing local ip");
+//
+//        peerConnectionObserver = new PeerConnectionObserver();
+//        pexSender = new PexSender(peers);
+//
+//        startServer();
+//        System.out.println("Showing local ip");
+        running = true;
         showLocalIpAddress();
+        startListenThread();
+        startSendThread();
+    }
+
+    private void startSendThread() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (running) {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    PexMessage pex = new PexMessage();
+                    pex.addAll(peers.values());
+                    for (Peer peer : peers.values()) {
+                        pex.setDestinationAddress(peer.getAddress());
+                        peer.sendPex(pex);
+                    }
+                }
+            }
+        }).start();
+        System.out.println("Thread started");
+    }
+
+    private void startListenThread() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    channel = DatagramChannel.open();
+                    channel.socket().bind(new InetSocketAddress(DEFAULT_PORT));
+                    ByteBuffer inputBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+                    while (running) {
+                        inputBuffer.clear();
+                        SocketAddress address = channel.receive(inputBuffer);
+                        inputBuffer.flip();
+//                        byte[] b = new byte[inputBuffer.remaining()];
+//                        inputBuffer.get(b);
+                        dataReceived(inputBuffer, (InetSocketAddress) address);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+        System.out.println("Thread started");
+    }
+
+    private void dataReceived(ByteBuffer data, InetSocketAddress address) {
+        if (peers.containsKey(address)) {
+            peers.get(address).received(data);
+        } else {
+            Peer peer = addPeer(address);
+            peer.received(data);
+        }
+        updatePeerList();
     }
 
     private void showLocalIpAddress() {
@@ -121,17 +187,20 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
         });
     }
 
-    private void addPeer(final Peer peer) {
+    private Peer addPeer(InetSocketAddress address) {
+        final Peer peer = new Peer(address, channel);
         new Handler(Looper.getMainLooper()).post(new Runnable() {
 
             @Override
             public void run() {
-                peers.add(peer);
-                peer.setConnectionObserver(peerConnectionObserver);
+                peers.put(peer.getAddress(), peer);
+                peerList.add(peer);
+                peer.connect();
                 peerConnectionListAdapter.notifyDataSetChanged();
                 System.out.println("Added " + peer);
             }
         });
+        return peer;
     }
 
     private void updatePeerList() {
@@ -147,46 +216,16 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
         return Patterns.IP_ADDRESS.matcher(s).matches();
     }
 
-    private void startServer() {
-        setStatus("Starting server socket");
-        ServerTask serverTask = new ServerTask(DEFAULT_PORT, new ServerTask.ServerConnectionListener() {
-            @Override
-            public void onConnection(Peer peer) {
-                addPeer(peer);
-                showToast("Received connection from " + peer.getExternalAddress());
-            }
-        });
-        serverTasks.add(serverTask);
-        serverTask.start();
-    }
-
-    private void stopServer() {
-        setStatus("Closing client socket");
-        for (Peer peer : peers) {
-            try {
-                if (peer.hasConnection()) {
-                    peer.getPeerConnection().close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     @Override
     public void onPex(PexMessage pex) {
         boolean has;
         for (Peer pexPeer : pex) {
             has = false;
-            for (Peer localPeer : peers) {
+            for (Peer localPeer : peers.values()) {
                 if (pexPeer.getExternalAddress().equals(localPeer.getExternalAddress())) {
                     has = true;
                     break;
                 }
-            }
-            if (!has) {
-                addPeer(pexPeer);
-                pexPeer.connect();
             }
         }
     }
@@ -194,14 +233,6 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
     @Override
     protected void onStop() {
         super.onStop();
-//        for (ServerTask serverTask : serverTasks) {
-//            serverTask.stop();
-//        }
-//        for (Peer peer : peers) {
-//            if (peer.hasConnection())
-//                peer.getPeerConnection().stop();
-//        }
-//        pexSender.stop();
     }
 
     private class PeerConnectionObserver implements Observer {
@@ -228,9 +259,12 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
             }
 
             try {
-                Peer peer = new Peer(port, (Inet4Address) Inet4Address.getByName(ipText));
-                addPeer(peer);
-                peer.connect();
+                InetSocketAddress address = new InetSocketAddress(InetAddress.getByName(ipText), port);
+                if (peers.containsKey(address)) {
+                    showToast("Peer with address " + address + " already added");
+                    return;
+                }
+                addPeer(address);
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -238,19 +272,4 @@ public class OverviewActivity extends AppCompatActivity implements PexListener {
 
     }
 
-    private class CloseConnectionButtonListener implements View.OnClickListener {
-
-        @Override
-        public void onClick(View v) {
-            setStatus("Closing client socket");
-            for (Peer peer : peers) {
-                try {
-                    if (peer.hasConnection())
-                        peer.getPeerConnection().close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
 }

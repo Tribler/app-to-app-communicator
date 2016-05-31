@@ -38,9 +38,9 @@ public class ServerTask {
                     while (running) {
                         Socket socket = serverSocket.accept();
                         PeerConnection connection = new PeerConnection(socket, true);
-                        Peer peer = new Peer(connection);
-                        if (serverConnectionListener != null)
-                            serverConnectionListener.onConnection(peer);
+//                        Peer peer = new Peer(connection);
+//                        if (serverConnectionListener != null)
+//                            serverConnectionListener.onConnection(peer);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

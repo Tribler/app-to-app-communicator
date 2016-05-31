@@ -41,20 +41,13 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
 
 
         Peer peer = getItem(position);
-        if (peer.hasConnection()) {
-            PeerConnection connection = peer.getPeerConnection();
-            if (connection.isClosed()) {
-                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusClosed));
-            } else if (connection.isConnected()) {
-                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnected));
-            } else {
-                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
-            }
-            holder.mConnected.setText(connection.isConnected() ? "Connected" : "Not connected");
-            holder.mOpened.setText(connection.isClosed() ? "Closed" : "Opened");
-            holder.mSourceAddress.setText(String.format("%s:%d", connection.getSocket().getLocalAddress(), connection.getSocket().getLocalPort()));
-            holder.mDestinationAddress.setText(String.format("%s:%d", connection.getSocket().getInetAddress(), connection.getSocket().getPort()));
-            holder.mPexId.setText(connection.hasDoneHandshake() ? String.valueOf(connection.getPexHandshake().getMessageId()) : "None");
+        if (peer.hasReceivedData()) {
+            holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnected));
+            holder.mConnected.setText("Has received data");
+            holder.mOpened.setText("");
+            holder.mSourceAddress.setText("");
+            holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
+            holder.mPexId.setText(peer.hasDoneHandshake() ? String.valueOf(peer.getPexHandshake().getMessageId()) : "None");
         } else {
             holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
             holder.mConnected.setText("Not connected");

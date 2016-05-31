@@ -32,7 +32,7 @@ public class PexSender {
                     }
                     for (Peer peer : peers) {
                         try {
-                            if (peer.hasConnection() && peer.getPeerConnection().isConnected()) {
+                            if (peer.hasReceivedData()) {
                                 sendPexToPeer(peer);
                             }
                         } catch (IOException e) {
@@ -45,9 +45,9 @@ public class PexSender {
     }
 
     private void sendPexToPeer(Peer peer) throws IOException {
-        if (peer.hasConnection()) {
-            peer.getPeerConnection().sendPexMessage(peers);
-        }
+//        if (peer.hasConnection()) {
+//            peer.getPeerConnection().sendPexMessage(peers);
+//        }
     }
 
     public void stop() {

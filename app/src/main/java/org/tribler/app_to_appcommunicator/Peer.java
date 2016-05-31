@@ -2,78 +2,95 @@ package org.tribler.app_to_appcommunicator;
 
 import android.os.AsyncTask;
 
+import com.hypirion.bencode.BencodeReadException;
+
+import org.tribler.app_to_appcommunicator.PEX.PexException;
+import org.tribler.app_to_appcommunicator.PEX.PexHandshake;
+import org.tribler.app_to_appcommunicator.PEX.PexMessage;
+
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.Socket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import java.util.Observer;
+import java.util.Random;
 
 /**
  * Created by jaap on 5/19/16.
  */
 public class Peer {
-    private PeerConnection peerConnection;
-    private Inet4Address externalAddress;
-    private Inet4Address internalAddress;
-    private int port;
+    final static int DEFAULT_PORT = 1873;
+    private static final int BUFFER_SIZE = 1024;
+    private InetSocketAddress address;
+    private PexHandshake pexHandshake;
     private Observer connectionObserver;
+    private DatagramChannel channel;
+    private boolean hasReceivedData = false;
 
-    public Peer(int port, Inet4Address externalAddress) {
-        this.port = port;
-        this.externalAddress = externalAddress;
+    public Peer(InetSocketAddress address, DatagramChannel channel) {
+        this.address = address;
+        this.channel = channel;
     }
 
-    public Peer(PeerConnection peerConnection) {
-        this.peerConnection = peerConnection;
-        this.port = peerConnection.getSocket().getPort();
-        this.externalAddress = (Inet4Address) peerConnection.getSocket().getInetAddress();
+    public boolean hasReceivedData() {
+        return hasReceivedData;
     }
 
-    public void setConnectionObserver(Observer connectionObserver) {
-        this.connectionObserver = connectionObserver;
-        if (peerConnection != null)
-            peerConnection.addObserver(connectionObserver);
+    public PexHandshake getPexHandshake() {
+        return pexHandshake;
+    }
+
+    public boolean hasDoneHandshake() {
+        return pexHandshake != null;
     }
 
     public int getPort() {
-        return port;
+        return address.getPort();
     }
 
-    public PeerConnection getPeerConnection() {
-        return peerConnection;
-    }
-
-    public void setPeerConnection(PeerConnection peerConnection) {
-        this.peerConnection = peerConnection;
-    }
-
-    public Inet4Address getExternalAddress() {
-        return externalAddress;
-    }
-
-    public Inet4Address getInternalAddress() {
-        return internalAddress;
-    }
-
-    public void setInternalAddress(Inet4Address internalAddress) {
-        this.internalAddress = internalAddress;
-    }
-
-    public boolean hasConnection() {
-        return peerConnection != null;
+    public InetAddress getExternalAddress() {
+        return address.getAddress();
     }
 
     public void connect() {
-        new ConnectionTask().execute();
+//        new ConnectionTask().execute();
+    }
+
+    public InetSocketAddress getAddress() {
+        return address;
     }
 
     @Override
     public String toString() {
         return "Peer{" +
-                "peerConnection=" + peerConnection +
-                ", externalAddress=" + externalAddress +
-                ", internalAddress=" + internalAddress +
-                ", port=" + port +
+                "address=" + address +
+                ", pexHandshake=" + pexHandshake +
+                ", connectionObserver=" + connectionObserver +
+                ", hasReceivedData=" + hasReceivedData +
                 '}';
+    }
+
+    public void received(ByteBuffer buffer) {
+        hasReceivedData = true;
+        try {
+            PexMessage message;
+            message = PexMessage.createFromByteBuffer(buffer);
+            System.out.println("Received PEX message: " + message);
+        } catch (BencodeReadException | PexException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendPex(PexMessage pex) {
+        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        try {
+            pex.writeToByteBuffer(buffer);
+            buffer.flip();
+            channel.send(buffer, address);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private class ConnectionTask extends AsyncTask<Void, Void, Void> {
@@ -81,9 +98,21 @@ public class Peer {
         @Override
         protected Void doInBackground(Void... voids) {
             try {
-                peerConnection = new PeerConnection(new Socket(externalAddress, port), false);
-                if (connectionObserver != null)
-                    peerConnection.addObserver(connectionObserver);
+                Random random = new Random();
+                ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
+                while (true) {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    buf.clear();
+                    for (int i = 0; i < random.nextInt(4); i++) {
+                        buf.put((byte) (80 + random.nextInt(100)));
+                    }
+                    buf.flip();
+                    int bytesSent = channel.send(buf, address);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }

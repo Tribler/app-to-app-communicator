@@ -7,6 +7,7 @@ import com.hypirion.bencode.BencodeWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,6 +31,7 @@ public class PexHandshake {
         writer.write(utPexHandshake);
     }
 
+
     public boolean supportsPex() {
         return messageId >= 1;
     }
@@ -44,6 +46,13 @@ public class PexHandshake {
             s += stream.read();
         }
         return new PexHandshake(messageId);
+    }
+
+    public void writeToByteBuffer(ByteBuffer buffer) throws IOException {
+        writeToStream(new ByteBufferOutputStream(buffer));
+    }
+    public static PexHandshake createFromByteBuffer(ByteBuffer buffer) throws IOException, BencodeReadException {
+        return createFromStream(new ByteBufferinputStream(buffer));
     }
 
     public long getMessageId() {

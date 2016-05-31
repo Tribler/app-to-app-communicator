@@ -68,12 +68,6 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:text="@string/start_connection" />
-
-            <Button
-                android:id="@+id/close_connection_button"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/close_connection" />
         </TableRow>
 
 
