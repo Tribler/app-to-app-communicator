@@ -1,6 +1,7 @@
 package org.tribler.app_to_appcommunicator;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,23 +42,46 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
 
 
         Peer peer = getItem(position);
+
+        holder.mOpened.setText(String.format("%s", peer.isIncoming() ? "incoming" : "outgoing"));
+        if (peer.getPeerId() != null)
+            holder.mSourceAddress.setText(peer.getPeerId().substring(0, 8));
         if (peer.hasReceivedData()) {
             holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnected));
             holder.mConnected.setText("Has received data");
-            holder.mOpened.setText("");
-            holder.mSourceAddress.setText("");
             holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
-            holder.mPexId.setText(peer.hasDoneHandshake() ? String.valueOf(peer.getPexHandshake().getMessageId()) : "None");
+            holder.mPexId.setText(connectionTypeString(peer.getConnectionType()));
         } else {
-            holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
+            if (peer.isOutgoing()) {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
+            } else {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
+            }
             holder.mConnected.setText("Not connected");
-            holder.mOpened.setText("");
-            holder.mSourceAddress.setText("");
             holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
             holder.mPexId.setText("");
         }
 
         return convertView;
+    }
+
+    private String connectionTypeString(int connectionType) {
+        switch (connectionType) {
+            case ConnectivityManager.TYPE_WIFI:
+                return "Wifi";
+            case ConnectivityManager.TYPE_BLUETOOTH:
+                return "Bluetooth";
+            case ConnectivityManager.TYPE_ETHERNET:
+                return "Ethernet";
+            case ConnectivityManager.TYPE_MOBILE:
+                return "Mobile";
+            case ConnectivityManager.TYPE_MOBILE_DUN:
+                return "Mobile dun";
+            case ConnectivityManager.TYPE_VPN:
+                return "VPN";
+            default:
+                return "Unknwon";
+        }
     }
 
     static class ViewHolder {
