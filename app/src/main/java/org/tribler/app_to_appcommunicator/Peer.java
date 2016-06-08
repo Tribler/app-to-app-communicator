@@ -16,10 +16,14 @@ public class Peer {
     private boolean incoming;
     private int connectionType;
 
+    final private static int TIMEOUT = 20000;
+    private long lastSendTime;
+
     public Peer(String peerId, InetSocketAddress address, boolean incoming) {
         this.peerId = peerId;
         this.address = address;
         this.incoming = incoming;
+        this.lastSendTime = System.currentTimeMillis();
     }
 
     public int getConnectionType() {
@@ -60,6 +64,14 @@ public class Peer {
 
     public InetSocketAddress getAddress() {
         return address;
+    }
+
+    public void sentData() {
+        lastSendTime = System.currentTimeMillis();
+    }
+
+    public boolean isInactive() {
+        return (!hasReceivedData && (System.currentTimeMillis() - lastSendTime) > TIMEOUT);
     }
 
     @Override

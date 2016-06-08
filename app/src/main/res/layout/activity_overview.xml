@@ -63,6 +63,19 @@
 
         <TableRow>
 
+            <TextView
+                android:layout_weight="1"
+                android:text="WAN Vote" />
+
+            <TextView
+                android:id="@+id/wanvote"
+                android:layout_weight="1"
+                android:text="unknown" />
+
+        </TableRow>
+
+        <TableRow>
+
             <Button
                 android:id="@+id/start_connection_button"
                 android:layout_height="match_parent"

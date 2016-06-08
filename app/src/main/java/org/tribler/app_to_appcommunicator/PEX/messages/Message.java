@@ -28,8 +28,8 @@ public abstract class Message extends HashMap {
     final protected static String PEER_ID = "peer_id";
     final protected static String DESTINATION = "destination";
 
-    public InetSocketAddress getDestination() {
-        return (InetSocketAddress) get(DESTINATION);
+    public InetSocketAddress getDestination() throws MessageException {
+        return createMapAddress((Map) get(DESTINATION));
     }
 
     public Message(int type, String peerId, InetSocketAddress destination) {

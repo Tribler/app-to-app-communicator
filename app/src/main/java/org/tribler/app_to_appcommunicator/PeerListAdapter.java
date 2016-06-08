@@ -52,10 +52,10 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
             holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
             holder.mPexId.setText(connectionTypeString(peer.getConnectionType()));
         } else {
-            if (peer.isOutgoing()) {
-                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
-            } else {
+            if (peer.isInactive()) {
                 holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
+            } else {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
             }
             holder.mConnected.setText("Not connected");
             holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
