@@ -10,14 +10,16 @@ import java.nio.ByteBuffer;
 public class Peer {
     public final static boolean INCOMING = true;
     public final static boolean OUTGOING = false;
+
+    final private static int TIMEOUT = 20000;
     private InetSocketAddress address;
     private String peerId;
     private boolean hasReceivedData = false;
+    private boolean hasSentData = false;
     private boolean incoming;
     private int connectionType;
-
-    final private static int TIMEOUT = 20000;
     private long lastSendTime;
+    private long lastReceiveTime;
 
     public Peer(String peerId, InetSocketAddress address, boolean incoming) {
         this.peerId = peerId;
@@ -67,11 +69,22 @@ public class Peer {
     }
 
     public void sentData() {
+        hasSentData = true;
         lastSendTime = System.currentTimeMillis();
     }
 
-    public boolean isInactive() {
-        return (!hasReceivedData && (System.currentTimeMillis() - lastSendTime) > TIMEOUT);
+    public void received(ByteBuffer buffer) {
+        hasReceivedData = true;
+        lastReceiveTime = System.currentTimeMillis();
+    }
+
+    public boolean isAlive() {
+        if (hasSentData) {
+            if (System.currentTimeMillis() - lastSendTime < TIMEOUT)
+                return true;
+            return hasReceivedData && lastReceiveTime > lastSendTime;
+        }
+        return true;
     }
 
     @Override
@@ -85,7 +98,4 @@ public class Peer {
                 '}';
     }
 
-    public void received(ByteBuffer buffer) {
-        hasReceivedData = true;
-    }
 }

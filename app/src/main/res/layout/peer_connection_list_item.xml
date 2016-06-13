@@ -7,53 +7,33 @@
     <TextView
         android:text="@string/circle_symbol"
         android:id="@+id/status_indicator"
-        android:layout_weight="0.1"
+        android:layout_weight="0.2"
         android:textSize="40sp"
         android:textColor="@color/colorAccent"
         android:layout_width="0dp"
         android:layout_height="wrap_content"/>
 
     <TableLayout
-        android:layout_weight="0.9"
+        android:layout_weight="0.8"
         android:layout_width="0dp"
         android:layout_height="wrap_content">
 
         <TableRow>
+            <TextView
+                android:id="@+id/carrier"
+                android:layout_weight="0.5"
+                android:textColor="@android:color/secondary_text_light"/>
 
             <TextView
-                android:id="@+id/connected"
-                android:layout_weight="1"
-                android:textColor="@android:color/primary_text_light"/>
-
-            <TextView
-                android:id="@+id/closed"
-                android:layout_weight="1"
-                android:textColor="@android:color/primary_text_light"/>
+                android:id="@+id/peer_id"
+                android:layout_weight="0.5"
+                android:textColor="@android:color/secondary_text_light"/>
         </TableRow>
 
         <TableRow>
-
-            <TextView
-                android:id="@+id/source_address"
-                android:layout_weight="1"
-                android:textColor="@android:color/secondary_text_light"/>
 
             <TextView
                 android:id="@+id/destination_address"
-                android:layout_weight="1"
-                android:textColor="@android:color/secondary_text_light"/>
-        </TableRow>
-
-        <TableRow>
-
-            <TextView
-                android:id="@+id/pex_handshake_label"
-                android:layout_weight="1"
-                android:textColor="@android:color/secondary_text_light"/>
-
-            <TextView
-                android:id="@+id/pex_handshake_id"
-                android:layout_weight="1"
                 android:textColor="@android:color/secondary_text_light"/>
         </TableRow>
 

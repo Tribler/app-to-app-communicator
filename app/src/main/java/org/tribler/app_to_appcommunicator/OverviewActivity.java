@@ -8,9 +8,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Patterns;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,7 +15,6 @@ import android.widget.Toast;
 import com.hypirion.bencode.BencodeReadException;
 
 import org.tribler.app_to_appcommunicator.PEX.PexException;
-import org.tribler.app_to_appcommunicator.PEX.PexSender;
 import org.tribler.app_to_appcommunicator.PEX.WanVote;
 import org.tribler.app_to_appcommunicator.PEX.messages.IntroductionRequest;
 import org.tribler.app_to_appcommunicator.PEX.messages.IntroductionResponse;
@@ -39,25 +35,24 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
 public class OverviewActivity extends AppCompatActivity {
 
+    //    public final static String CONNECTABLE_ADDRESS = "130.161.211.254";
+    public final static String CONNECTABLE_ADDRESS = "84.80.46.152";
     final static int DEFAULT_PORT = 1873;
     private static final int BUFFER_SIZE = 1024;
-
-    private Button mOpenConnectButton;
-    private TextView mStatusText;
     private TextView mWanVote;
-    private PeerListAdapter peerConnectionListAdapter;
+    private PeerListAdapter incomingPeerAdapter;
+    private PeerListAdapter outgoingPeerAdapter;
     private DatagramChannel channel;
 
-    private Map<String, Peer> peers;
     private List<Peer> peerList;
+    private List<Peer> incomingList;
+    private List<Peer> outgoingList;
     private boolean running;
     private String hashId;
     private WanVote wanVote;
@@ -70,23 +65,30 @@ public class OverviewActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_overview);
 
-        peers = new HashMap<>();
         peerList = new ArrayList<>();
+        incomingList = new ArrayList<>();
+        outgoingList = new ArrayList<>();
         hashId = generateHash();
+        ((TextView) findViewById(R.id.peer_id)).setText(hashId.toString().substring(0, 4));
         wanVote = new WanVote();
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         connectionType = cm.getActiveNetworkInfo().getType();
         outBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-        mStatusText = (TextView) findViewById(R.id.status_text);
         mWanVote = (TextView) findViewById(R.id.wanvote);
-        mOpenConnectButton = (Button) findViewById(R.id.start_connection_button);
 
-        mOpenConnectButton.setOnClickListener(new ConnectButtonListener());
+        ListView incomingPeerConnectionListView = (ListView) findViewById(R.id.incoming_peer_connection_list_view);
+        ListView outgoingPeerConnectionListView = (ListView) findViewById(R.id.outgoing_peer_connection_list_view);
+        incomingPeerAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, incomingList, Peer.INCOMING);
+        incomingPeerConnectionListView.setAdapter(incomingPeerAdapter);
+        outgoingPeerAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, outgoingList, Peer.OUTGOING);
+        outgoingPeerConnectionListView.setAdapter(outgoingPeerAdapter);
 
-        ListView peerConnectionListView = (ListView) findViewById(R.id.peer_connection_list_view);
-        peerConnectionListAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, peerList);
-        peerConnectionListView.setAdapter(peerConnectionListAdapter);
+        try {
+            addPeer(null, new InetSocketAddress(InetAddress.getByName(CONNECTABLE_ADDRESS), DEFAULT_PORT), Peer.OUTGOING);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
 
         running = true;
         showLocalIpAddress();
@@ -196,17 +198,31 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private Peer getOrMakeIncomingPeer(String id, InetSocketAddress address) {
-        if (peers.containsKey(id)) {
-            return peers.get(id);
-        } else {
+        if (id != null) {
             for (Peer peer : peerList) {
-                if (peer.getAddress().equals(address)) {
-                    peer.setPeerId(id);
+                if (id.equals(peer.getPeerId())) {
                     return peer;
                 }
             }
-            return addPeer(id, address, Peer.INCOMING);
         }
+        for (Peer peer : peerList) {
+            if (peer.getAddress().equals(address)) {
+                peer.setPeerId(id);
+                return peer;
+            }
+        }
+        return addPeer(id, address, Peer.INCOMING);
+    }
+
+    private boolean peerExists(String id) {
+        if (id == null)
+            return false;
+        for (Peer peer : peerList) {
+            if (id.equals(peer.getPeerId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
@@ -215,7 +231,7 @@ public class OverviewActivity extends AppCompatActivity {
             Message message = Message.createFromByteBuffer(data);
             System.out.println("Received " + message);
             String id = message.getPeerId();
-            if (!peers.containsKey(id)) {
+            if (!peerExists(id)) {
                 wanVote.vote(message.getDestination());
                 setWanvote(wanVote.getAddress().toString());
             }
@@ -235,7 +251,7 @@ public class OverviewActivity extends AppCompatActivity {
                     handlePunctureRequest(peer, (PunctureRequest) message);
                     break;
             }
-            updatePeerList();
+            updatePeerLists();
         } catch (BencodeReadException | PexException | IOException | MessageException e) {
             e.printStackTrace();
         }
@@ -301,15 +317,6 @@ public class OverviewActivity extends AppCompatActivity {
         }.execute();
     }
 
-    private void setStatus(final String status) {
-        new Handler(getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                mStatusText.setText(status);
-            }
-        });
-    }
-
     private void setWanvote(final String status) {
         new Handler(getMainLooper()).post(new Runnable() {
             @Override
@@ -338,22 +345,36 @@ public class OverviewActivity extends AppCompatActivity {
 
             @Override
             public void run() {
-                peers.put(peer.getPeerId(), peer);
                 peerList.add(peer);
-                peerConnectionListAdapter.notifyDataSetChanged();
+                incomingPeerAdapter.notifyDataSetChanged();
+                outgoingPeerAdapter.notifyDataSetChanged();
                 System.out.println("Added " + peer);
             }
         });
         return peer;
     }
 
-    private void updatePeerList() {
+    private void updatePeerLists() {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
-                peerConnectionListAdapter.notifyDataSetChanged();
+                splitPeerList();
+                incomingPeerAdapter.notifyDataSetChanged();
+                outgoingPeerAdapter.notifyDataSetChanged();
             }
         });
+    }
+
+    private void splitPeerList() {
+        incomingList.clear();
+        outgoingList.clear();
+        for (Peer peer : peerList) {
+            if (peer.isIncoming()) {
+                incomingList.add(peer);
+            } else {
+                outgoingList.add(peer);
+            }
+        }
     }
 
     private boolean isValidIp(String s) {
@@ -365,33 +386,5 @@ public class OverviewActivity extends AppCompatActivity {
         super.onStop();
     }
 
-    private class ConnectButtonListener implements View.OnClickListener {
-
-        @Override
-        public void onClick(View v) {
-            setStatus("Connecting to server");
-            String ipText = ((EditText) findViewById(R.id.ip_address_edit_text)).getText().toString();
-            String portText = ((EditText) findViewById(R.id.port_edit_text)).getText().toString();
-            int port = Integer.valueOf(portText);
-            if (!isValidIp(ipText)) {
-                Toast.makeText(getApplicationContext(), "Not a valid IP address", Toast.LENGTH_LONG).show();
-                return;
-            }
-
-            try {
-                InetSocketAddress address = new InetSocketAddress(InetAddress.getByName(ipText), port);
-                for (Peer peer : peerList) {
-                    if (peer.getAddress().equals(address)) {
-                        showToast("Peer with address " + address + " already added");
-                        return;
-                    }
-                }
-                addPeer(null, address, Peer.OUTGOING);
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
 
 }

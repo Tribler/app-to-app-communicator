@@ -24,6 +24,7 @@ public abstract class Message extends HashMap {
     public final static int INTRODUCTION_RESPONSE = 2;
     public final static int PUNCTURE_REQUEST = 3;
     public final static int PUNCTURE = 4;
+
     final protected static String TYPE = "type";
     final protected static String PEER_ID = "peer_id";
     final protected static String DESTINATION = "destination";

@@ -15,10 +15,12 @@ import java.util.List;
  */
 public class PeerListAdapter extends ArrayAdapter<Peer> {
     private final Context context;
+    private boolean incoming;
 
-    public PeerListAdapter(Context context, int resource, List<Peer> peerConnectionList) {
+    public PeerListAdapter(Context context, int resource, List<Peer> peerConnectionList, boolean incoming) {
         super(context, resource, peerConnectionList);
         this.context = context;
+        this.incoming = incoming;
     }
 
     @Override
@@ -30,36 +32,31 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
 
             holder = new ViewHolder();
             holder.mStatusIndicator = (TextView) convertView.findViewById(R.id.status_indicator);
-            holder.mConnected = (TextView) convertView.findViewById(R.id.connected);
-            holder.mOpened = (TextView) convertView.findViewById(R.id.closed);
-            holder.mSourceAddress = (TextView) convertView.findViewById(R.id.source_address);
+            holder.mCarrier = (TextView) convertView.findViewById(R.id.carrier);
+            holder.mPeerId = (TextView) convertView.findViewById(R.id.peer_id);
             holder.mDestinationAddress = (TextView) convertView.findViewById(R.id.destination_address);
-            holder.mPexId = (TextView) convertView.findViewById(R.id.pex_handshake_id);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
 
-
         Peer peer = getItem(position);
 
-        holder.mOpened.setText(String.format("%s", peer.isIncoming() ? "incoming" : "outgoing"));
-        if (peer.getPeerId() != null)
-            holder.mSourceAddress.setText(peer.getPeerId().substring(0, 8));
+        holder.mPeerId.setText(peer.getPeerId() == null ? "" : peer.getPeerId().substring(0, 4));
         if (peer.hasReceivedData()) {
-            holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnected));
-            holder.mConnected.setText("Has received data");
-            holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
-            holder.mPexId.setText(connectionTypeString(peer.getConnectionType()));
-        } else {
-            if (peer.isInactive()) {
-                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
+            if (peer.isAlive()) {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnected));
             } else {
-                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
             }
-            holder.mConnected.setText("Not connected");
             holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
-            holder.mPexId.setText("");
+        } else {
+            if (peer.isAlive()) {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
+            } else {
+                holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
+            }
+            holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
         }
 
         return convertView;
@@ -85,12 +82,10 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
     }
 
     static class ViewHolder {
-        TextView mStatusIndicator;
-        TextView mConnected;
-        TextView mOpened;
-        TextView mSourceAddress;
+        TextView mPeerId;
+        TextView mCarrier;
         TextView mDestinationAddress;
-        TextView mPexId;
+        TextView mStatusIndicator;
     }
 
 }

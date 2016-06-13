@@ -9,55 +9,21 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="org.tribler.app_to_appcommunicator.OverviewActivity">
 
-    <TextView
-        android:id="@+id/status_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!" />
-
-    <LinearLayout
-        android:id="@+id/address_fields"
-        android:layout_below="@id/status_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <EditText
-            android:id="@+id/ip_address_edit_text"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.7"
-            android:digits="0123456789."
-            android:inputType="phone"
-            android:text="192.168.2.4" />
-
-        <EditText
-            android:id="@+id/port_edit_text"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.3"
-            android:width="0dp"
-            android:digits="0123456789."
-            android:inputType="phone"
-            android:text="1873" />
-
-    </LinearLayout>
-
     <TableLayout
         android:id="@+id/overviewButtons"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/address_fields">
+        android:layout_height="wrap_content">
 
         <TableRow>
 
             <TextView
                 android:layout_weight="1"
-                android:text="IP Address" />
+                android:text="@string/ip_address" />
 
             <TextView
                 android:id="@+id/local_ip_address_view"
                 android:layout_weight="1"
-                android:text="ip" />
+                android:text="@string/ip" />
 
         </TableRow>
 
@@ -65,31 +31,59 @@
 
             <TextView
                 android:layout_weight="1"
-                android:text="WAN Vote" />
+                android:text="@string/wan_vote" />
 
             <TextView
                 android:id="@+id/wanvote"
                 android:layout_weight="1"
-                android:text="unknown" />
+                android:text="@string/unknown" />
 
         </TableRow>
 
         <TableRow>
 
-            <Button
-                android:id="@+id/start_connection_button"
-                android:layout_height="match_parent"
+            <TextView
                 android:layout_weight="1"
-                android:text="@string/start_connection" />
+                android:text="@string/peer_id" />
+
+            <TextView
+                android:id="@+id/peer_id"
+                android:layout_weight="1"
+                android:layout_marginBottom="20dp"
+                android:text="" />
+
         </TableRow>
 
+        <TableRow>
+
+            <TextView
+                android:layout_weight="1"
+                android:textStyle="bold"
+                android:text="@string/incoming" />
+
+            <TextView
+                android:layout_weight="1"
+                android:textStyle="bold"
+                android:text="@string/outgoing" />
+
+        </TableRow>
+
+        <TableRow>
+
+            <ListView
+                android:id="@+id/incoming_peer_connection_list_view"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <ListView
+                android:id="@+id/outgoing_peer_connection_list_view"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+        </TableRow>
 
     </TableLayout>
 
-    <ListView
-        android:id="@+id/peer_connection_list_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/overviewButtons" />
 
 </RelativeLayout>
