@@ -1,4 +1,4 @@
-package org.tribler.app_to_appcommunicator.PEX.messages;
+package org.tribler.app_to_appcommunicator.connection.messages;
 
 /**
  * Created by jaap on 5/31/16.

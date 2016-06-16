@@ -49,6 +49,19 @@
             <TextView
                 android:id="@+id/peer_id"
                 android:layout_weight="1"
+                android:text="" />
+
+        </TableRow>
+
+        <TableRow>
+
+            <TextView
+                android:layout_weight="1"
+                android:text="@string/connection" />
+
+            <TextView
+                android:id="@+id/connection_type"
+                android:layout_weight="1"
                 android:layout_marginBottom="20dp"
                 android:text="" />
 

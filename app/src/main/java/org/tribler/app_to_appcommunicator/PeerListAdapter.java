@@ -43,21 +43,25 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         Peer peer = getItem(position);
 
         holder.mPeerId.setText(peer.getPeerId() == null ? "" : peer.getPeerId().substring(0, 4));
+        if (peer.getNetworkOperator() != null) {
+            holder.mCarrier.setText(connectionTypeString(peer.getConnectionType()) + " " + peer.getNetworkOperator());
+        } else {
+            holder.mCarrier.setText("");
+        }
         if (peer.hasReceivedData()) {
             if (peer.isAlive()) {
                 holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnected));
             } else {
                 holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
             }
-            holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
         } else {
             if (peer.isAlive()) {
                 holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusConnecting));
             } else {
                 holder.mStatusIndicator.setTextColor(context.getResources().getColor(R.color.colorStatusCantConnect));
             }
-            holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress(), peer.getPort()));
         }
+        holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress().toString().substring(1), peer.getPort()));
 
         return convertView;
     }

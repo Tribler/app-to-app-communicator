@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.TelephonyManager;
 import android.util.Patterns;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -14,14 +15,13 @@ import android.widget.Toast;
 
 import com.hypirion.bencode.BencodeReadException;
 
-import org.tribler.app_to_appcommunicator.PEX.PexException;
-import org.tribler.app_to_appcommunicator.PEX.WanVote;
-import org.tribler.app_to_appcommunicator.PEX.messages.IntroductionRequest;
-import org.tribler.app_to_appcommunicator.PEX.messages.IntroductionResponse;
-import org.tribler.app_to_appcommunicator.PEX.messages.Message;
-import org.tribler.app_to_appcommunicator.PEX.messages.MessageException;
-import org.tribler.app_to_appcommunicator.PEX.messages.Puncture;
-import org.tribler.app_to_appcommunicator.PEX.messages.PunctureRequest;
+import org.tribler.app_to_appcommunicator.connection.WanVote;
+import org.tribler.app_to_appcommunicator.connection.messages.IntroductionRequest;
+import org.tribler.app_to_appcommunicator.connection.messages.IntroductionResponse;
+import org.tribler.app_to_appcommunicator.connection.messages.Message;
+import org.tribler.app_to_appcommunicator.connection.messages.MessageException;
+import org.tribler.app_to_appcommunicator.connection.messages.Puncture;
+import org.tribler.app_to_appcommunicator.connection.messages.PunctureRequest;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -44,6 +44,8 @@ public class OverviewActivity extends AppCompatActivity {
     //    public final static String CONNECTABLE_ADDRESS = "130.161.211.254";
     public final static String CONNECTABLE_ADDRESS = "84.80.46.152";
     final static int DEFAULT_PORT = 1873;
+    final static int KNOWN_PEER_LIMIT = 10;
+    final static int UNKNOWN_PEER_LIMIT = 20;
     private static final int BUFFER_SIZE = 1024;
     private TextView mWanVote;
     private PeerListAdapter incomingPeerAdapter;
@@ -55,6 +57,7 @@ public class OverviewActivity extends AppCompatActivity {
     private List<Peer> outgoingList;
     private boolean running;
     private String hashId;
+    private String networkOperator;
     private WanVote wanVote;
     private int connectionType;
     private ByteBuffer outBuffer;
@@ -65,6 +68,8 @@ public class OverviewActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_overview);
 
+        TelephonyManager telephonyManager = ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE));
+        networkOperator = telephonyManager.getNetworkOperatorName();
         peerList = new ArrayList<>();
         incomingList = new ArrayList<>();
         outgoingList = new ArrayList<>();
@@ -72,7 +77,14 @@ public class OverviewActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.peer_id)).setText(hashId.toString().substring(0, 4));
         wanVote = new WanVote();
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        connectionType = cm.getActiveNetworkInfo().getType();
+        try {
+            connectionType = cm.getActiveNetworkInfo().getType();
+        } catch (Exception e) {
+            showToast("Can't connect: no active network");
+            return;
+        }
+        ((TextView) findViewById(R.id.connection_type))
+                .setText(cm.getActiveNetworkInfo().getTypeName() + " " + cm.getActiveNetworkInfo().getSubtypeName());
         outBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
         mWanVote = (TextView) findViewById(R.id.wanvote);
@@ -126,12 +138,12 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private void sendIntroductionRequest(InetSocketAddress address) throws IOException {
-        IntroductionRequest request = new IntroductionRequest(hashId, address, connectionType);
+        IntroductionRequest request = new IntroductionRequest(hashId, address, connectionType, networkOperator);
         sendMesssage(request, address);
     }
 
     private void sendPunctureRequest(InetSocketAddress address, Peer puncturePeer) throws IOException {
-        PunctureRequest request = new PunctureRequest(hashId, address, internalSourceAddress, puncturePeer.getAddress());
+        PunctureRequest request = new PunctureRequest(hashId, address, internalSourceAddress, puncturePeer);
         sendMesssage(request, address);
     }
 
@@ -140,23 +152,13 @@ public class OverviewActivity extends AppCompatActivity {
         sendMesssage(puncture, address);
     }
 
-    private List<InetSocketAddress> getPexPeer() {
-        List<InetSocketAddress> pexPeers = new ArrayList<>();
-        for (Peer peer : peerList) {
-            if (peer.hasReceivedData()) {
-                pexPeers.add(peer.getAddress());
-            }
-        }
-        return pexPeers;
-    }
-
     private void sendIntroductionResponse(InetSocketAddress address, Peer invitee) throws IOException {
-        IntroductionResponse response = new IntroductionResponse(hashId, internalSourceAddress, address,
-                invitee.getAddress(), connectionType, getPexPeer());
+        IntroductionResponse response =
+                new IntroductionResponse(hashId, internalSourceAddress, address, invitee, connectionType, peerList, networkOperator);
         sendMesssage(response, address);
     }
 
-    private void sendMesssage(Message message, InetSocketAddress address) throws IOException {
+    private synchronized void sendMesssage(Message message, InetSocketAddress address) throws IOException {
         System.out.println("Sending " + message);
         outBuffer.clear();
         message.writeToByteBuffer(outBuffer);
@@ -165,11 +167,15 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private Peer getRandomPeerExcluding(Peer peer) {
+        int alivePeers = 0;
+        for (Peer p : peerList) {
+            if (p.isAlive() && !p.equals(peer)) alivePeers++;
+        }
         Random random = new Random();
         int i;
         while (true) {
             i = random.nextInt(peerList.size());
-            if (!peerList.get(i).equals(peer)) {
+            if (!peerList.get(i).equals(peer) && (alivePeers == 0 || peerList.get(i).isAlive())) {
                 return peerList.get(i);
             }
         }
@@ -197,7 +203,7 @@ public class OverviewActivity extends AppCompatActivity {
         System.out.println("Thread started");
     }
 
-    private Peer getOrMakeIncomingPeer(String id, InetSocketAddress address) {
+    private Peer getOrMakePeer(String id, InetSocketAddress address, boolean incoming) {
         if (id != null) {
             for (Peer peer : peerList) {
                 if (id.equals(peer.getPeerId())) {
@@ -211,12 +217,11 @@ public class OverviewActivity extends AppCompatActivity {
                 return peer;
             }
         }
-        return addPeer(id, address, Peer.INCOMING);
+        return addPeer(id, address, incoming);
     }
 
     private boolean peerExists(String id) {
-        if (id == null)
-            return false;
+        if (id == null) return false;
         for (Peer peer : peerList) {
             if (id.equals(peer.getPeerId())) {
                 return true;
@@ -235,7 +240,8 @@ public class OverviewActivity extends AppCompatActivity {
                 wanVote.vote(message.getDestination());
                 setWanvote(wanVote.getAddress().toString());
             }
-            Peer peer = getOrMakeIncomingPeer(id, address);
+            Peer peer = getOrMakePeer(id, address, Peer.INCOMING);
+            if (peer == null) return;
             peer.received(data);
             switch (message.getType()) {
                 case Message.INTRODUCTION_REQUEST:
@@ -252,12 +258,14 @@ public class OverviewActivity extends AppCompatActivity {
                     break;
             }
             updatePeerLists();
-        } catch (BencodeReadException | PexException | IOException | MessageException e) {
+        } catch (BencodeReadException | IOException | MessageException e) {
             e.printStackTrace();
         }
     }
 
     private void handlIntroductionRequest(Peer peer, IntroductionRequest message) throws IOException {
+        peer.setNetworkOperator(message.getNetworkOperator());
+        peer.setConnectionType((int) message.getConnectionType());
         if (peerList.size() > 1) {
             Peer invitee = getRandomPeerExcluding(peer);
             sendIntroductionResponse(peer.getAddress(), invitee);
@@ -270,19 +278,18 @@ public class OverviewActivity extends AppCompatActivity {
 
     private void handleIntroductionResponse(Peer peer, IntroductionResponse message) {
         peer.setConnectionType((int) message.getConnectionType());
-        List<InetSocketAddress> pex = message.getPex();
-        for (InetSocketAddress address : pex) {
-            addPeer(null, address, false);
+        peer.setNetworkOperator(message.getNetworkOperator());
+        List<Peer> pex = message.getPex();
+        for (Peer pexPeer : pex) {
+            getOrMakePeer(pexPeer.getPeerId(), pexPeer.getAddress(), Peer.OUTGOING);
         }
     }
 
     private void handlePuncture(Peer peer, Puncture message) throws IOException {
-//        if (peer.isIncoming())
-//            sendPuncture(peer.getAddress());
     }
 
     private void handlePunctureRequest(Peer peer, PunctureRequest message) throws IOException, MessageException {
-        sendPuncture(message.getPuncturePeer());
+        if (!peerExists(message.getPuncturePeer().getPeerId())) sendPuncture(message.getPuncturePeer().getAddress());
     }
 
     private void showLocalIpAddress() {
@@ -336,11 +343,17 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private Peer addPeer(String peerId, InetSocketAddress address, boolean incoming) {
+        if (hashId.equals(peerId)) {
+            System.out.println("Not adding self");
+            return null;
+        }
         for (Peer peer : peerList) {
-            if (peer.getAddress().equals(address))
-                return peer;
+            if (peer.getAddress().equals(address)) return peer;
         }
         final Peer peer = new Peer(peerId, address, incoming);
+        if (incoming) {
+            showToast("New incoming peer from " + peer.getAddress());
+        }
         new Handler(Looper.getMainLooper()).post(new Runnable() {
 
             @Override
@@ -351,7 +364,57 @@ public class OverviewActivity extends AppCompatActivity {
                 System.out.println("Added " + peer);
             }
         });
+        trimPeers();
         return peer;
+    }
+
+    private void trimPeers() {
+        limitKnownPeers(KNOWN_PEER_LIMIT);
+        limitUnknownPeers(UNKNOWN_PEER_LIMIT);
+    }
+
+    private void limitKnownPeers(int limit) {
+        if (peerList.size() < limit) return;
+        int knownPeers = 0;
+        Peer oldestPeer = null;
+        long oldestDate = System.currentTimeMillis();
+        for (Peer peer : peerList) {
+            if (peer.hasReceivedData()) {
+                knownPeers++;
+                if (peer.getCreationTime() < oldestDate) {
+                    oldestDate = peer.getCreationTime();
+                    oldestPeer = peer;
+                }
+            }
+        }
+        if (knownPeers > limit) {
+            peerList.remove(oldestPeer);
+        }
+        if (knownPeers - 1 > limit) {
+            limitKnownPeers(limit);
+        }
+    }
+
+    private void limitUnknownPeers(int limit) {
+        if (peerList.size() < limit) return;
+        int unknownPeers = 0;
+        Peer oldestPeer = null;
+        long oldestDate = System.currentTimeMillis();
+        for (Peer peer : peerList) {
+            if (!peer.hasReceivedData()) {
+                unknownPeers++;
+                if (peer.getCreationTime() < oldestDate) {
+                    oldestDate = peer.getCreationTime();
+                    oldestPeer = peer;
+                }
+            }
+        }
+        if (unknownPeers > limit) {
+            peerList.remove(oldestPeer);
+        }
+        if (unknownPeers - 1 > limit) {
+            limitKnownPeers(limit);
+        }
     }
 
     private void updatePeerLists() {

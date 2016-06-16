@@ -15,4 +15,5 @@
     <string name="ip">ip</string>
     <string name="incoming">Incoming</string>
     <string name="outgoing">outgoing</string>
+    <string name="connection">Connection</string>
 </resources>

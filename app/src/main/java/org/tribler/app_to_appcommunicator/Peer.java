@@ -18,14 +18,30 @@ public class Peer {
     private boolean hasSentData = false;
     private boolean incoming;
     private int connectionType;
+    private String networkOperator;
     private long lastSendTime;
     private long lastReceiveTime;
+    private long creationTime;
+
 
     public Peer(String peerId, InetSocketAddress address, boolean incoming) {
         this.peerId = peerId;
         this.address = address;
         this.incoming = incoming;
         this.lastSendTime = System.currentTimeMillis();
+        this.creationTime = System.currentTimeMillis();
+    }
+
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public String getNetworkOperator() {
+        return networkOperator;
+    }
+
+    public void setNetworkOperator(String networkOperator) {
+        this.networkOperator = networkOperator;
     }
 
     public int getConnectionType() {
@@ -74,14 +90,16 @@ public class Peer {
     }
 
     public void received(ByteBuffer buffer) {
+        if (!hasSentData) {
+            incoming = INCOMING;
+        }
         hasReceivedData = true;
         lastReceiveTime = System.currentTimeMillis();
     }
 
     public boolean isAlive() {
         if (hasSentData) {
-            if (System.currentTimeMillis() - lastSendTime < TIMEOUT)
-                return true;
+            if (System.currentTimeMillis() - lastSendTime < TIMEOUT) return true;
             return hasReceivedData && lastReceiveTime > lastSendTime;
         }
         return true;

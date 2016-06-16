@@ -1,4 +1,4 @@
-package org.tribler.app_to_appcommunicator.PEX;
+package org.tribler.app_to_appcommunicator.connection;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;

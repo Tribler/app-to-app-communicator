@@ -1,39 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="horizontal"
               android:layout_width="match_parent"
-              android:layout_height="wrap_content">
+              android:layout_height="wrap_content"
+              android:orientation="horizontal">
 
     <TextView
-        android:text="@string/circle_symbol"
         android:id="@+id/status_indicator"
-        android:layout_weight="0.2"
-        android:textSize="40sp"
-        android:textColor="@color/colorAccent"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_weight="0.2"
+        android:text="@string/circle_symbol"
+        android:textColor="@color/colorAccent"
+        android:textSize="40sp"/>
 
     <TableLayout
-        android:layout_weight="0.8"
         android:layout_width="0dp"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_weight="0.8">
 
-        <TableRow>
+        <TableRow
+            android:layout_height="wrap_content">
+
             <TextView
                 android:id="@+id/carrier"
                 android:layout_weight="0.5"
+                android:layout_width="0dp"
                 android:textColor="@android:color/secondary_text_light"/>
 
             <TextView
                 android:id="@+id/peer_id"
                 android:layout_weight="0.5"
+                android:layout_width="0dp"
                 android:textColor="@android:color/secondary_text_light"/>
         </TableRow>
 
-        <TableRow>
+        <TableRow
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
 
             <TextView
+                android:layout_weight="1"
+                android:layout_width="fill_parent"
                 android:id="@+id/destination_address"
+                android:layout_span="2"
                 android:textColor="@android:color/secondary_text_light"/>
         </TableRow>
 
