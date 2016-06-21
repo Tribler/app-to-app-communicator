@@ -1,11 +1,14 @@
 package org.tribler.app_to_appcommunicator;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.util.Patterns;
@@ -41,12 +44,13 @@ import java.util.UUID;
 
 public class OverviewActivity extends AppCompatActivity {
 
-    //    public final static String CONNECTABLE_ADDRESS = "130.161.211.254";
-    public final static String CONNECTABLE_ADDRESS = "84.80.46.152";
+    public final static String CONNECTABLE_ADDRESS = "130.161.211.254";
+    final static int UNKNOWN_PEER_LIMIT = 20;
+    //    public final static String CONNECTABLE_ADDRESS = "84.80.46.152";
+    final static String HASH_ID = "hash_id";
     final static int DEFAULT_PORT = 1873;
     final static int KNOWN_PEER_LIMIT = 10;
-    final static int UNKNOWN_PEER_LIMIT = 20;
-    private static final int BUFFER_SIZE = 1024;
+    private static final int BUFFER_SIZE = 2048;
     private TextView mWanVote;
     private PeerListAdapter incomingPeerAdapter;
     private PeerListAdapter outgoingPeerAdapter;
@@ -73,7 +77,7 @@ public class OverviewActivity extends AppCompatActivity {
         peerList = new ArrayList<>();
         incomingList = new ArrayList<>();
         outgoingList = new ArrayList<>();
-        hashId = generateHash();
+        hashId = getId();
         ((TextView) findViewById(R.id.peer_id)).setText(hashId.toString().substring(0, 4));
         wanVote = new WanVote();
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -106,6 +110,19 @@ public class OverviewActivity extends AppCompatActivity {
         showLocalIpAddress();
         startListenThread();
         startSendThread();
+    }
+
+    private String getId() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String id = preferences.getString(HASH_ID, null);
+        if (id == null) {
+            System.out.println("Generating new ID");
+            id = generateHash();
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString(HASH_ID, id);
+            editor.apply();
+        }
+        return id;
     }
 
     private String generateHash() {
@@ -153,8 +170,13 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private void sendIntroductionResponse(InetSocketAddress address, Peer invitee) throws IOException {
+        List<Peer> pexPeers = new ArrayList<>();
+        for (Peer peer : peerList) {
+            if (peer.hasReceivedData() && peer.getPeerId() != null && peer.isAlive())
+                pexPeers.add(peer);
+        }
         IntroductionResponse response =
-                new IntroductionResponse(hashId, internalSourceAddress, address, invitee, connectionType, peerList, networkOperator);
+                new IntroductionResponse(hashId, internalSourceAddress, address, invitee, connectionType, pexPeers, networkOperator);
         sendMesssage(response, address);
     }
 
@@ -207,6 +229,10 @@ public class OverviewActivity extends AppCompatActivity {
         if (id != null) {
             for (Peer peer : peerList) {
                 if (id.equals(peer.getPeerId())) {
+                    if (!address.equals(peer.getAddress())) {
+                        System.out.println("Peer address differs from known address");
+                        peer.setAddress(address);
+                    }
                     return peer;
                 }
             }
@@ -281,6 +307,7 @@ public class OverviewActivity extends AppCompatActivity {
         peer.setNetworkOperator(message.getNetworkOperator());
         List<Peer> pex = message.getPex();
         for (Peer pexPeer : pex) {
+            if (hashId.equals(pexPeer.getPeerId())) continue;
             getOrMakePeer(pexPeer.getPeerId(), pexPeer.getAddress(), Peer.OUTGOING);
         }
     }
@@ -347,6 +374,10 @@ public class OverviewActivity extends AppCompatActivity {
             System.out.println("Not adding self");
             return null;
         }
+        if (wanVote.getAddress() != null && wanVote.getAddress().equals(address)) {
+            System.out.println("Not adding peer with same address as wanVote");
+            return null;
+        }
         for (Peer peer : peerList) {
             if (peer.getAddress().equals(address)) return peer;
         }
@@ -359,6 +390,7 @@ public class OverviewActivity extends AppCompatActivity {
             @Override
             public void run() {
                 peerList.add(peer);
+                splitPeerList();
                 incomingPeerAdapter.notifyDataSetChanged();
                 outgoingPeerAdapter.notifyDataSetChanged();
                 System.out.println("Added " + peer);
@@ -432,12 +464,18 @@ public class OverviewActivity extends AppCompatActivity {
         incomingList.clear();
         outgoingList.clear();
         for (Peer peer : peerList) {
-            if (peer.isIncoming()) {
+            if (peer.hasReceivedData()) {
                 incomingList.add(peer);
             } else {
                 outgoingList.add(peer);
             }
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        updatePeerLists();
     }
 
     private boolean isValidIp(String s) {

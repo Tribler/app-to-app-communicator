@@ -116,4 +116,26 @@ public class Peer {
                 '}';
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Peer peer = (Peer) o;
+
+        if (address != null ? !address.equals(peer.address) : peer.address != null) return false;
+        return peerId != null ? peerId.equals(peer.peerId) : peer.peerId == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = address != null ? address.hashCode() : 0;
+        result = 31 * result + (peerId != null ? peerId.hashCode() : 0);
+        return result;
+    }
+
+    public void setAddress(InetSocketAddress address) {
+        this.address = address;
+    }
 }

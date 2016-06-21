@@ -8,15 +8,16 @@
         android:id="@+id/status_indicator"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="0.2"
+        android:layout_weight="0.15"
         android:text="@string/circle_symbol"
         android:textColor="@color/colorAccent"
-        android:textSize="40sp"/>
+        android:height="35dp"
+        android:textSize="25dp"/>
 
     <TableLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="0.8">
+        android:layout_weight="0.85">
 
         <TableRow
             android:layout_height="wrap_content">
