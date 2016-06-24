@@ -16,4 +16,7 @@
     <string name="incoming">Incoming</string>
     <string name="outgoing">outgoing</string>
     <string name="connection">Connection</string>
+    <string name="connectable_ratio">Connectable\nratio</string>
+    <string name="connectable_peers">Connectable\nPeers</string>
+    <string name="active_peers">Active\nPeers</string>
 </resources>

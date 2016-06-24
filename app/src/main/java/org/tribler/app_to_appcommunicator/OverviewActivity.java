@@ -45,13 +45,16 @@ import java.util.UUID;
 public class OverviewActivity extends AppCompatActivity {
 
     public final static String CONNECTABLE_ADDRESS = "130.161.211.254";
+    //            public final static String CONNECTABLE_ADDRESS = "84.80.46.152";
     final static int UNKNOWN_PEER_LIMIT = 20;
-    //    public final static String CONNECTABLE_ADDRESS = "84.80.46.152";
     final static String HASH_ID = "hash_id";
     final static int DEFAULT_PORT = 1873;
     final static int KNOWN_PEER_LIMIT = 10;
     private static final int BUFFER_SIZE = 2048;
     private TextView mWanVote;
+    private TextView mActivePeers;
+    private TextView mConnectablePeers;
+    private TextView mConnectableRatio;
     private PeerListAdapter incomingPeerAdapter;
     private PeerListAdapter outgoingPeerAdapter;
     private DatagramChannel channel;
@@ -87,11 +90,13 @@ public class OverviewActivity extends AppCompatActivity {
             showToast("Can't connect: no active network");
             return;
         }
-        ((TextView) findViewById(R.id.connection_type))
-                .setText(cm.getActiveNetworkInfo().getTypeName() + " " + cm.getActiveNetworkInfo().getSubtypeName());
+        ((TextView) findViewById(R.id.connection_type)).setText(cm.getActiveNetworkInfo().getTypeName() + " " + cm.getActiveNetworkInfo().getSubtypeName());
         outBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
         mWanVote = (TextView) findViewById(R.id.wanvote);
+        mActivePeers = (TextView) findViewById(R.id.active_peers);
+        mConnectablePeers = (TextView) findViewById(R.id.connectable_peers);
+        mConnectableRatio = (TextView) findViewById(R.id.connectable_ratio);
 
         ListView incomingPeerConnectionListView = (ListView) findViewById(R.id.incoming_peer_connection_list_view);
         ListView outgoingPeerConnectionListView = (ListView) findViewById(R.id.outgoing_peer_connection_list_view);
@@ -142,8 +147,10 @@ public class OverviewActivity extends AppCompatActivity {
                     try {
                         if (peerList.size() > 0) {
                             Peer peer = getRandomPeerExcluding(null);
-                            sendIntroductionRequest(peer.getAddress());
-                            peer.sentData();
+                            if (peer != null) {
+                                sendIntroductionRequest(peer.getAddress());
+                                peer.sentData();
+                            }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -174,8 +181,7 @@ public class OverviewActivity extends AppCompatActivity {
         for (Peer peer : peerList) {
             if (peer.hasReceivedData() && peer.getPeerId() != null && peer.isAlive()) pexPeers.add(peer);
         }
-        IntroductionResponse response =
-                new IntroductionResponse(hashId, internalSourceAddress, address, invitee, connectionType, pexPeers, networkOperator);
+        IntroductionResponse response = new IntroductionResponse(hashId, internalSourceAddress, address, invitee, connectionType, pexPeers, networkOperator);
         sendMesssage(response, address);
     }
 
@@ -187,19 +193,19 @@ public class OverviewActivity extends AppCompatActivity {
         channel.send(outBuffer, address);
     }
 
-    private Peer getRandomPeerExcluding(Peer peer) {
-        int alivePeers = 0;
+    private Peer getRandomPeerExcluding(Peer excludePeer) {
+        List<Peer> eligiblePeers = new ArrayList<>();
         for (Peer p : peerList) {
-            if (p.isAlive() && !p.equals(peer)) alivePeers++;
-        }
-        Random random = new Random();
-        int i;
-        while (true) {
-            i = random.nextInt(peerList.size());
-            if (!peerList.get(i).equals(peer) && (alivePeers == 0 || peerList.get(i).isAlive())) {
-                return peerList.get(i);
+            if (p.isAlive() && !p.equals(excludePeer)) {
+                eligiblePeers.add(p);
             }
         }
+        if (eligiblePeers.size() == 0) {
+            System.out.println("No elegible peers!");
+            return null;
+        }
+        Random random = new Random();
+        return eligiblePeers.get(random.nextInt(eligiblePeers.size()));
     }
 
     private void startListenThread() {
@@ -328,7 +334,8 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private void handlePunctureRequest(Peer peer, PunctureRequest message) throws IOException, MessageException {
-        if (!peerExists(message.getPuncturePeer().getPeerId())) sendPuncture(message.getPuncturePeer().getAddress());
+        if (!peerExists(message.getPuncturePeer().getPeerId()))
+            sendPuncture(message.getPuncturePeer().getAddress());
     }
 
     private void showLocalIpAddress() {
@@ -468,8 +475,26 @@ public class OverviewActivity extends AppCompatActivity {
                 splitPeerList();
                 incomingPeerAdapter.notifyDataSetChanged();
                 outgoingPeerAdapter.notifyDataSetChanged();
+                updatePeerStats();
             }
         });
+    }
+
+    private void updatePeerStats() {
+        int activePeers = 0;
+        int connectablePeers = 0;
+        for (Peer peer : peerList) {
+            if (peer.isHasSentData() || peer.hasReceivedData()) {
+                activePeers++;
+            }
+            if (peer.hasReceivedData()) {
+                connectablePeers++;
+            }
+        }
+        float ratio = (float) connectablePeers / (float) activePeers;
+        mConnectablePeers.setText(String.valueOf(connectablePeers));
+        mActivePeers.setText(String.valueOf(activePeers));
+        mConnectableRatio.setText(String.valueOf(ratio));
     }
 
     private void splitPeerList() {
