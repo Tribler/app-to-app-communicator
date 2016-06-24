@@ -44,7 +44,11 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
 
         holder.mPeerId.setText(peer.getPeerId() == null ? "" : peer.getPeerId().substring(0, 4));
         if (peer.getNetworkOperator() != null) {
-            holder.mCarrier.setText(connectionTypeString(peer.getConnectionType()) + " " + peer.getNetworkOperator());
+            if (peer.getConnectionType() == ConnectivityManager.TYPE_MOBILE) {
+                holder.mCarrier.setText(peer.getNetworkOperator());
+            } else {
+                holder.mCarrier.setText(connectionTypeString(peer.getConnectionType()));
+            }
         } else {
             holder.mCarrier.setText("");
         }
@@ -81,7 +85,7 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
             case ConnectivityManager.TYPE_VPN:
                 return "VPN";
             default:
-                return "Unknwon";
+                return "Unknown";
         }
     }
 

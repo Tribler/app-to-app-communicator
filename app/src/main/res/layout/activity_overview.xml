@@ -18,7 +18,7 @@
 
             <TextView
                 android:layout_weight="1"
-                android:text="@string/ip_address" />
+                android:text="@string/local_ip" />
 
             <TextView
                 android:id="@+id/local_ip_address_view"
@@ -31,7 +31,7 @@
 
             <TextView
                 android:layout_weight="1"
-                android:text="@string/wan_vote" />
+                android:text="@string/wan_address" />
 
             <TextView
                 android:id="@+id/wanvote"

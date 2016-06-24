@@ -126,7 +126,7 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     private String generateHash() {
-        return UUID.randomUUID().toString();
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 
     private void startSendThread() {
@@ -172,8 +172,7 @@ public class OverviewActivity extends AppCompatActivity {
     private void sendIntroductionResponse(InetSocketAddress address, Peer invitee) throws IOException {
         List<Peer> pexPeers = new ArrayList<>();
         for (Peer peer : peerList) {
-            if (peer.hasReceivedData() && peer.getPeerId() != null && peer.isAlive())
-                pexPeers.add(peer);
+            if (peer.hasReceivedData() && peer.getPeerId() != null && peer.isAlive()) pexPeers.add(peer);
         }
         IntroductionResponse response =
                 new IntroductionResponse(hashId, internalSourceAddress, address, invitee, connectionType, pexPeers, networkOperator);
@@ -232,6 +231,7 @@ public class OverviewActivity extends AppCompatActivity {
                     if (!address.equals(peer.getAddress())) {
                         System.out.println("Peer address differs from known address");
                         peer.setAddress(address);
+                        removeDuplicates();
                     }
                     return peer;
                 }
@@ -239,11 +239,23 @@ public class OverviewActivity extends AppCompatActivity {
         }
         for (Peer peer : peerList) {
             if (peer.getAddress().equals(address)) {
-                peer.setPeerId(id);
+                if (id != null) peer.setPeerId(id);
                 return peer;
             }
         }
         return addPeer(id, address, incoming);
+    }
+
+    private void removeDuplicates() {
+        for (int i = 0; i < peerList.size(); i++) {
+            Peer p1 = peerList.get(i);
+            for (int j = 0; j < peerList.size(); j++) {
+                Peer p2 = peerList.get(j);
+                if (j != i && p1.getPeerId() != null && p1.getPeerId().equals(p2.getPeerId())) {
+                    peerList.remove(p2);
+                }
+            }
+        }
     }
 
     private boolean peerExists(String id) {
