@@ -5,6 +5,8 @@ import android.net.ConnectivityManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.RotateAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
@@ -63,7 +65,19 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         }
         holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress().toString().substring(1), peer.getPort()));
 
+        if (peer.isAnimate()) {
+            animate(holder.mDestinationAddress);
+            peer.setAnimate(false);
+        }
+
         return convertView;
+    }
+
+    private void animate(View view) {
+        view.clearAnimation();
+        Animation animation = new RotateAnimation(0, 360);
+        animation.setDuration(1000);
+        view.startAnimation(animation);
     }
 
     private String connectionTypeString(int connectionType) {
