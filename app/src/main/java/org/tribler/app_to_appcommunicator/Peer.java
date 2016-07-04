@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 /**
+ * The peer object. The peer is identified by its unique peer id and keeps track of the last send and receive time.
+ * <p/>
  * Created by jaap on 5/19/16.
  */
 public class Peer {
@@ -16,7 +18,6 @@ public class Peer {
     private String peerId;
     private boolean hasReceivedData = false;
     private boolean hasSentData = false;
-    private boolean incoming;
     private int connectionType;
     private String networkOperator;
     private long lastSendTime;
@@ -25,10 +26,15 @@ public class Peer {
     private boolean animate;
 
 
-    public Peer(String peerId, InetSocketAddress address, boolean incoming) {
+    /**
+     * Create a peer.
+     *
+     * @param peerId  its unique id.
+     * @param address its address.
+     */
+    public Peer(String peerId, InetSocketAddress address) {
         this.peerId = peerId;
         this.address = address;
-        this.incoming = incoming;
         this.lastSendTime = System.currentTimeMillis();
         this.creationTime = System.currentTimeMillis();
         this.animate = false;
@@ -39,6 +45,7 @@ public class Peer {
     }
 
     public void setAnimate(boolean animate) {
+        System.out.println("Setting animate: " + this.animate + " -> " + animate);
         this.animate = animate;
     }
 
@@ -62,13 +69,6 @@ public class Peer {
         this.connectionType = connectionType;
     }
 
-    public boolean isIncoming() {
-        return incoming;
-    }
-
-    public boolean isOutgoing() {
-        return !incoming;
-    }
 
     public String getPeerId() {
         return peerId;
@@ -98,20 +98,32 @@ public class Peer {
         this.address = address;
     }
 
+
+    /**
+     * Method called when data is sent to this peer.
+     */
     public void sentData() {
         hasSentData = true;
         lastSendTime = System.currentTimeMillis();
     }
 
+    /**
+     * Method called when data is received.
+     *
+     * @param buffer the received data.
+     */
     public void received(ByteBuffer buffer) {
-        animate = true;
-        if (!hasSentData) {
-            incoming = INCOMING;
-        }
+        setAnimate(true);
         hasReceivedData = true;
         lastReceiveTime = System.currentTimeMillis();
     }
 
+    /**
+     * Calculates whether this peer is alive: the peer is alive when the peer hasn't send data yet, or when data is received within the
+     * timeout after sending data.
+     *
+     * @return
+     */
     public boolean isAlive() {
         if (hasSentData) {
             if (System.currentTimeMillis() - lastSendTime < TIMEOUT) return true;
@@ -126,7 +138,6 @@ public class Peer {
                 "address=" + address +
                 ", peerId='" + peerId + '\'' +
                 ", hasReceivedData=" + hasReceivedData +
-                ", incoming=" + incoming +
                 ", connectionType=" + connectionType +
                 '}';
     }

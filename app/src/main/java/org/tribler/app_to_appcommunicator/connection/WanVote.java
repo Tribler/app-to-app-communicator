@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * The WanVote counts address votes and return the majority vote, or when equal the last vote.
+ * <p/>
  * Created by jaap on 6/1/16.
  */
 public class WanVote {

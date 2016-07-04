@@ -1,12 +1,14 @@
 package org.tribler.app_to_appcommunicator;
 
+import android.animation.Animator;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.content.Context;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
@@ -37,6 +39,8 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
             holder.mCarrier = (TextView) convertView.findViewById(R.id.carrier);
             holder.mPeerId = (TextView) convertView.findViewById(R.id.peer_id);
             holder.mDestinationAddress = (TextView) convertView.findViewById(R.id.destination_address);
+            holder.mReceivedIndicator = (TextView) convertView.findViewById(R.id.received_indicator);
+            holder.mSentIndicator = (TextView) convertView.findViewById(R.id.sent_indicator);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -69,19 +73,40 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         }
         holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress().toString().substring(1), peer.getPort()));
 
+        System.out.println(peer.getPeerId());
         if (peer.isAnimate()) {
-            animate(holder.mDestinationAddress);
-            peer.setAnimate(false);
+            System.out.println("Animate");
+            holder.mSentIndicator.setAlpha(1);
+            holder.mSentIndicator.animate().alpha(0).setDuration(500).start();
         }
 
         return convertView;
     }
 
-    private void animate(View view) {
-        view.clearAnimation();
-        Animation animation = new RotateAnimation(0, 360);
-        animation.setDuration(1000);
-        view.startAnimation(animation);
+    private Animator animate(final View view, Animator animator) {
+        view.animate().rotationYBy(20);
+        return null;
+//        System.out.println("Animating");
+//        if (animator == null) {
+//            int colorFrom = Color.RED;
+//            int colorTo = Color.GRAY;
+//            ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorFrom, colorTo);
+//            colorAnimation.setDuration(250);
+//            colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+//
+//                @Override
+//                public void onAnimationUpdate(ValueAnimator animator) {
+//                    view.setBackgroundColor((int) animator.getAnimatedValue());
+//                }
+//
+//            });
+//            colorAnimation.start();
+//            return colorAnimation;
+//        } else {
+//            System.out.println("Not null");
+//            animator.setupStartValues();
+//            animator.start();
+//            return animator;
     }
 
     private String connectionTypeString(int connectionType) {
@@ -108,6 +133,9 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         TextView mCarrier;
         TextView mDestinationAddress;
         TextView mStatusIndicator;
+        TextView mReceivedIndicator;
+        TextView mSentIndicator;
+        Animator animation;
     }
 
 }

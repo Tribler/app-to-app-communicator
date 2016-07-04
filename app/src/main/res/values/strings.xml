@@ -9,6 +9,7 @@
     <string name="close_connection">Close connection</string>
     <string name="pex_handshake_id">PEX handshake ID:</string>
     <string name="circle_symbol">●</string>
+    <string name="indicator_symbol">▂</string>
     <string name="peer_id">Peer ID</string>
     <string name="unknown">unknown</string>
     <string name="wan_address">WAN Address</string>

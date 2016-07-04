@@ -7,4 +7,6 @@
     <color name="colorStatusConnecting">#fdb61b</color>
     <color name="colorStatusCantConnect">#ff1744</color>
     <color name="colorStatusClosed">#5c6bc0</color>
+    <color name="colorReceived">#5c6bc0</color>
+    <color name="colorSent">#8bc34a</color>
 </resources>

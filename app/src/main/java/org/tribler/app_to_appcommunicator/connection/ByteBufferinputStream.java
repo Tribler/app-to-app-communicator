@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 /**
+ * ByteBuffer implementation of an {@link InputStream}.
+ * <p/>
  * Created by jaap on 5/26/16.
  */
 public class ByteBufferinputStream extends InputStream {
