@@ -2,7 +2,6 @@ package org.tribler.app_to_appcommunicator;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -45,7 +44,6 @@ import java.util.UUID;
 public class OverviewActivity extends AppCompatActivity {
 
     public final static String CONNECTABLE_ADDRESS = "130.161.211.254";
-    //            public final static String CONNECTABLE_ADDRESS = "84.80.46.152";
     final static int UNKNOWN_PEER_LIMIT = 20;
     final static String HASH_ID = "hash_id";
     final static int DEFAULT_PORT = 1873;
@@ -71,6 +69,11 @@ public class OverviewActivity extends AppCompatActivity {
     private ByteBuffer outBuffer;
     private InetSocketAddress internalSourceAddress;
 
+    /**
+     * Initialize views, start send and receive threads if necessary.
+     *
+     * @param savedInstanceState saved instance state
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,35 +92,16 @@ public class OverviewActivity extends AppCompatActivity {
         hashId = getId();
         ((TextView) findViewById(R.id.peer_id)).setText(hashId.toString().substring(0, 4));
         wanVote = new WanVote();
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        try {
-            connectionType = cm.getActiveNetworkInfo().getType();
-        } catch (Exception e) {
-            showToast("Can't connect: no active network");
-            return;
-        }
-        ((TextView) findViewById(R.id.connection_type)).setText(cm.getActiveNetworkInfo().getTypeName() + " " + cm.getActiveNetworkInfo().getSubtypeName());
         outBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-
         mWanVote = (TextView) findViewById(R.id.wanvote);
         mActivePeers = (TextView) findViewById(R.id.active_peers);
         mConnectablePeers = (TextView) findViewById(R.id.connectable_peers);
         mConnectableRatio = (TextView) findViewById(R.id.connectable_ratio);
-
-        ListView incomingPeerConnectionListView = (ListView) findViewById(R.id.incoming_peer_connection_list_view);
-        ListView outgoingPeerConnectionListView = (ListView) findViewById(R.id.outgoing_peer_connection_list_view);
-        incomingPeerAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, incomingList, Peer.INCOMING);
-        incomingPeerConnectionListView.setAdapter(incomingPeerAdapter);
-        outgoingPeerAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, outgoingList, Peer.OUTGOING);
-        outgoingPeerConnectionListView.setAdapter(outgoingPeerAdapter);
-
-        try {
-            addPeer(null, new InetSocketAddress(InetAddress.getByName(CONNECTABLE_ADDRESS), DEFAULT_PORT), Peer.OUTGOING);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-
         running = true;
+
+        addInitialPeer();
+        initPeerLists();
+        updateConnectionType();
         showLocalIpAddress();
         startListenThread();
         startSendThread();
@@ -126,6 +110,49 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Initialize the peer lists.
+     */
+    private void initPeerLists() {
+        ListView incomingPeerConnectionListView = (ListView) findViewById(R.id.incoming_peer_connection_list_view);
+        ListView outgoingPeerConnectionListView = (ListView) findViewById(R.id.outgoing_peer_connection_list_view);
+        incomingPeerAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, incomingList, Peer.INCOMING);
+        incomingPeerConnectionListView.setAdapter(incomingPeerAdapter);
+        outgoingPeerAdapter = new PeerListAdapter(getApplicationContext(), R.layout.peer_connection_list_item, outgoingList, Peer.OUTGOING);
+        outgoingPeerConnectionListView.setAdapter(outgoingPeerAdapter);
+    }
+
+    /**
+     * Add the intial hard-coded connectable peer to the peer list.
+     */
+    private void addInitialPeer() {
+        try {
+            addPeer(null, new InetSocketAddress(InetAddress.getByName(CONNECTABLE_ADDRESS), DEFAULT_PORT), Peer.OUTGOING);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * Request and display the current connection type.
+     */
+    private void updateConnectionType() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        try {
+            connectionType = cm.getActiveNetworkInfo().getType();
+        } catch (Exception e) {
+            showToast("Can't connect: no active network");
+            return;
+        }
+        ((TextView) findViewById(R.id.connection_type)).setText(cm.getActiveNetworkInfo().getTypeName() + " " + cm.getActiveNetworkInfo().getSubtypeName());
+    }
+
+    /**
+     * Retrieve the local peer id from storage.
+     *
+     * @return the peer id.
+     */
     private String getId() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String id = preferences.getString(HASH_ID, null);
@@ -139,10 +166,18 @@ public class OverviewActivity extends AppCompatActivity {
         return id;
     }
 
+    /**
+     * Generate a new hash to be used as peer id.
+     *
+     * @return the generated hash.
+     */
     private String generateHash() {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
+    /**
+     * Start the thread send thread responsible for sending a {@link IntroductionRequest} to a random peer every 5 seconds.
+     */
     private void startSendThread() {
         new Thread(new Runnable() {
             @Override
@@ -155,7 +190,7 @@ public class OverviewActivity extends AppCompatActivity {
                     }
                     try {
                         if (peerList.size() > 0) {
-                            Peer peer = getRandomPeerExcluding(null);
+                            Peer peer = getEligiblePeer(null);
                             if (peer != null) {
                                 sendIntroductionRequest(peer);
                             }
@@ -170,31 +205,64 @@ public class OverviewActivity extends AppCompatActivity {
         System.out.println("Thread started");
     }
 
+    /**
+     * Send an introduction request.
+     *
+     * @param peer the destination.
+     * @throws IOException
+     */
     private void sendIntroductionRequest(Peer peer) throws IOException {
         IntroductionRequest request = new IntroductionRequest(hashId, peer.getAddress(), connectionType, networkOperator);
         sendMesssage(request, peer);
     }
 
+    /**
+     * Send a puncture request.
+     *
+     * @param peer         the destination.
+     * @param puncturePeer the peer to puncture.
+     * @throws IOException
+     */
     private void sendPunctureRequest(Peer peer, Peer puncturePeer) throws IOException {
         PunctureRequest request = new PunctureRequest(hashId, peer.getAddress(), internalSourceAddress, puncturePeer);
         sendMesssage(request, peer);
     }
 
+    /**
+     * Send a puncture.
+     *
+     * @param peer the destination.
+     * @throws IOException
+     */
     private void sendPuncture(Peer peer) throws IOException {
         Puncture puncture = new Puncture(hashId, peer.getAddress(), internalSourceAddress);
         sendMesssage(puncture, peer);
     }
 
-    private void sendIntroductionResponse(Peer p, Peer invitee) throws IOException {
+    /**
+     * Send an introduction response.
+     *
+     * @param peer    the destination.
+     * @param invitee the invitee to which the destination peer will send a puncture request.
+     * @throws IOException
+     */
+    private void sendIntroductionResponse(Peer peer, Peer invitee) throws IOException {
         List<Peer> pexPeers = new ArrayList<>();
-        for (Peer peer : peerList) {
-            if (peer.hasReceivedData() && peer.getPeerId() != null && peer.isAlive())
-                pexPeers.add(peer);
+        for (Peer p : peerList) {
+            if (p.hasReceivedData() && p.getPeerId() != null && p.isAlive())
+                pexPeers.add(p);
         }
-        IntroductionResponse response = new IntroductionResponse(hashId, internalSourceAddress, p.getAddress(), invitee, connectionType, pexPeers, networkOperator);
-        sendMesssage(response, p);
+        IntroductionResponse response = new IntroductionResponse(hashId, internalSourceAddress, peer.getAddress(), invitee, connectionType, pexPeers, networkOperator);
+        sendMesssage(response, peer);
     }
 
+    /**
+     * Send a message to given peer.
+     *
+     * @param message the message to send.
+     * @param peer    the destination peer.
+     * @throws IOException
+     */
     private synchronized void sendMesssage(Message message, Peer peer) throws IOException {
         System.out.println("Sending " + message);
         outBuffer.clear();
@@ -204,7 +272,13 @@ public class OverviewActivity extends AppCompatActivity {
         peer.sentData();
     }
 
-    private Peer getRandomPeerExcluding(Peer excludePeer) {
+    /**
+     * Pick a random eligible peer/invitee for sending an introduction request to.
+     *
+     * @param excludePeer peer to which the invitee is sent.
+     * @return the eligible peer if any, else null.
+     */
+    private Peer getEligiblePeer(Peer excludePeer) {
         List<Peer> eligiblePeers = new ArrayList<>();
         for (Peer p : peerList) {
             if (p.isAlive() && !p.equals(excludePeer)) {
@@ -219,6 +293,10 @@ public class OverviewActivity extends AppCompatActivity {
         return eligiblePeers.get(random.nextInt(eligiblePeers.size()));
     }
 
+    /**
+     * Start the listen thread. The thread opens a new {@link DatagramChannel} and calls {@link OverviewActivity#dataReceived(ByteBuffer,
+     * InetSocketAddress)} for each incoming datagram.
+     */
     private void startListenThread() {
         new Thread(new Runnable() {
             @Override
@@ -241,6 +319,14 @@ public class OverviewActivity extends AppCompatActivity {
         System.out.println("Listen thread started");
     }
 
+    /**
+     * Resolve a peer id or address to a peer, else create a new one.
+     *
+     * @param id       the peer's unique id.
+     * @param address  the peer's address.
+     * @param incoming boolean indicator whether the peer is incoming.
+     * @return the resolved or create peer.
+     */
     private Peer getOrMakePeer(String id, InetSocketAddress address, boolean incoming) {
         if (id != null) {
             for (Peer peer : peerList) {
@@ -263,6 +349,9 @@ public class OverviewActivity extends AppCompatActivity {
         return addPeer(id, address, incoming);
     }
 
+    /**
+     * Remove duplicate peers from the peerlist.
+     */
     private void removeDuplicates() {
         for (int i = 0; i < peerList.size(); i++) {
             Peer p1 = peerList.get(i);
@@ -275,6 +364,12 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Check whether a peer exists.
+     *
+     * @param id the peer's id.
+     * @return the result.
+     */
     private boolean peerExists(String id) {
         if (id == null) return false;
         for (Peer peer : peerList) {
@@ -286,6 +381,12 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * Handle incoming data.
+     *
+     * @param data    the data {@link ByteBuffer}.
+     * @param address the incoming address.
+     */
     private void dataReceived(ByteBuffer data, InetSocketAddress address) {
         try {
             Message message = Message.createFromByteBuffer(data);
@@ -318,11 +419,18 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Handle an introduction request. Send a puncture request to the included invitee.
+     *
+     * @param peer    the origin peer.
+     * @param message the message.
+     * @throws IOException
+     */
     private void handlIntroductionRequest(Peer peer, IntroductionRequest message) throws IOException {
         peer.setNetworkOperator(message.getNetworkOperator());
         peer.setConnectionType((int) message.getConnectionType());
         if (peerList.size() > 1) {
-            Peer invitee = getRandomPeerExcluding(peer);
+            Peer invitee = getEligiblePeer(peer);
             if (invitee != null) {
                 sendIntroductionResponse(peer, invitee);
                 sendPunctureRequest(invitee, peer);
@@ -333,6 +441,12 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Handle an introduction response. Parse incoming PEX peers.
+     *
+     * @param peer    the origin peer.
+     * @param message the message.
+     */
     private void handleIntroductionResponse(Peer peer, IntroductionResponse message) {
         peer.setConnectionType((int) message.getConnectionType());
         peer.setNetworkOperator(message.getNetworkOperator());
@@ -343,14 +457,32 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Handle a puncture. Does nothing because the only purpose of a puncture is to punch a hole in the NAT.
+     *
+     * @param peer    the origin peer.
+     * @param message the message.
+     * @throws IOException
+     */
     private void handlePuncture(Peer peer, Puncture message) throws IOException {
     }
 
+    /**
+     * Handle a puncture request. Sends a puncture to the puncture peer included in the message.
+     *
+     * @param peer    the origin peer.
+     * @param message the message.
+     * @throws IOException
+     * @throws MessageException
+     */
     private void handlePunctureRequest(Peer peer, PunctureRequest message) throws IOException, MessageException {
         if (!peerExists(message.getPuncturePeer().getPeerId()))
             sendPuncture(message.getPuncturePeer());
     }
 
+    /**
+     * Show the local IP address.
+     */
     private void showLocalIpAddress() {
         new AsyncTask<Void, Void, InetAddress>() {
 
@@ -383,15 +515,25 @@ public class OverviewActivity extends AppCompatActivity {
         }.execute();
     }
 
-    private void setWanvote(final String status) {
+    /**
+     * Set the external ip field based on the WAN vote.
+     *
+     * @param ip the ip address.
+     */
+    private void setWanvote(final String ip) {
         new Handler(getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
-                mWanVote.setText(status);
+                mWanVote.setText(ip);
             }
         });
     }
 
+    /**
+     * Show a toast.
+     *
+     * @param toast the text to show.
+     */
     private void showToast(final String toast) {
         new Handler(getMainLooper()).post(new Runnable() {
             @Override
@@ -401,6 +543,14 @@ public class OverviewActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Add a peer to the peer list.
+     *
+     * @param peerId   the peer's id.
+     * @param address  the peer's address.
+     * @param incoming whether the peer is an incoming peer.
+     * @return
+     */
     private Peer addPeer(String peerId, InetSocketAddress address, boolean incoming) {
         if (hashId.equals(peerId)) {
             System.out.println("Not adding self");
@@ -414,7 +564,7 @@ public class OverviewActivity extends AppCompatActivity {
             if (peer.getPeerId() != null && peer.getPeerId().equals(peerId)) return peer;
             if (peer.getAddress().equals(address)) return peer;
         }
-        final Peer peer = new Peer(peerId, address, incoming);
+        final Peer peer = new Peer(peerId, address);
         if (incoming) {
             showToast("New incoming peer from " + peer.getAddress());
         }
@@ -433,11 +583,19 @@ public class OverviewActivity extends AppCompatActivity {
         return peer;
     }
 
+    /**
+     * Deletes the oldest peers based on constant limits {@value KNOWN_PEER_LIMIT} and {@value UNKNOWN_PEER_LIMIT}.
+     */
     private void trimPeers() {
         limitKnownPeers(KNOWN_PEER_LIMIT);
         limitUnknownPeers(UNKNOWN_PEER_LIMIT);
     }
 
+    /**
+     * Limit the amount of known peers by deleting the oldest peers.
+     *
+     * @param limit the limit.
+     */
     private void limitKnownPeers(int limit) {
         if (peerList.size() < limit) return;
         int knownPeers = 0;
@@ -460,6 +618,11 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Limit the amount of known peers by deleting the oldest peers.
+     *
+     * @param limit the limit.
+     */
     private void limitUnknownPeers(int limit) {
         if (peerList.size() < limit) return;
         int unknownPeers = 0;
@@ -482,6 +645,9 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Update the showed peer lists.
+     */
     private void updatePeerLists() {
         if (updatePending) return;
         updatePending = true;
@@ -497,6 +663,9 @@ public class OverviewActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Update the connection stats of thee peers.
+     */
     private void updatePeerStats() {
         int activePeers = 0;
         int connectablePeers = 0;
@@ -514,6 +683,9 @@ public class OverviewActivity extends AppCompatActivity {
         mConnectableRatio.setText(String.valueOf(ratio));
     }
 
+    /**
+     * Split the peer list between incoming and outgoing peers.
+     */
     private void splitPeerList() {
         List<Peer> newIncoming = new ArrayList<>();
         List<Peer> newOutgoing = new ArrayList<>();
@@ -534,11 +706,12 @@ public class OverviewActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-    }
-
+    /**
+     * Check whether an ip address is valid.
+     *
+     * @param s the text to check for validity.
+     * @return the validity.
+     */
     private boolean isValidIp(String s) {
         return Patterns.IP_ADDRESS.matcher(s).matches();
     }
