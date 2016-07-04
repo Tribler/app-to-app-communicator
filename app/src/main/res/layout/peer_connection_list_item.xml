@@ -4,15 +4,46 @@
               android:layout_height="wrap_content"
               android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/status_indicator"
+    <TableLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="0.15"
-        android:text="@string/circle_symbol"
-        android:textColor="@color/colorAccent"
-        android:height="35dp"
-        android:textSize="25dp"/>
+        android:layout_weight="0.15">
+
+        <TableRow>
+            <TextView
+                android:id="@+id/status_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/circle_symbol"
+                android:textColor="@color/colorAccent"
+                android:textAlignment="center"
+                android:textSize="20sp"
+                />
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:id="@+id/received_indicator"
+                android:layout_weight="0.5"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:alpha="0"
+                android:text="@string/indicator_symbol"
+                android:textColor="@color/colorReceived"
+                android:textSize="15sp"/>
+            <TextView
+                android:id="@+id/sent_indicator"
+                android:layout_width="0dp"
+                android:alpha="0"
+                android:layout_weight="0.5"
+                android:layout_height="wrap_content"
+                android:text="@string/indicator_symbol"
+                android:textColor="@color/colorSent"
+                android:textSize="15sp"/>
+        </TableRow>
+
+
+    </TableLayout>
 
     <TableLayout
         android:layout_width="0dp"
@@ -24,14 +55,14 @@
 
             <TextView
                 android:id="@+id/carrier"
-                android:layout_weight="0.5"
                 android:layout_width="0dp"
+                android:layout_weight="0.5"
                 android:textColor="@android:color/secondary_text_light"/>
 
             <TextView
                 android:id="@+id/peer_id"
-                android:layout_weight="0.5"
                 android:layout_width="0dp"
+                android:layout_weight="0.5"
                 android:textColor="@android:color/secondary_text_light"/>
         </TableRow>
 
@@ -40,10 +71,10 @@
             android:layout_height="wrap_content">
 
             <TextView
-                android:layout_weight="1"
-                android:layout_width="fill_parent"
                 android:id="@+id/destination_address"
+                android:layout_width="fill_parent"
                 android:layout_span="2"
+                android:layout_weight="1"
                 android:textColor="@android:color/secondary_text_light"/>
         </TableRow>
 

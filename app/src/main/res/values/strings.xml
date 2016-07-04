@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">App-to-app Communicator</string>
     <string name="start_connection">Attempt connection</string>
-    <string name="ip_address">IP address</string>
+    <string name="local_ip">Local IP</string>
     <string name="start_server_connection">Start server connection</string>
     <string name="client_socket">Client socket</string>
     <string name="server_socket">Server socket</string>
@@ -9,9 +9,10 @@
     <string name="close_connection">Close connection</string>
     <string name="pex_handshake_id">PEX handshake ID:</string>
     <string name="circle_symbol">●</string>
+    <string name="indicator_symbol">▂</string>
     <string name="peer_id">Peer ID</string>
     <string name="unknown">unknown</string>
-    <string name="wan_vote">WAN Vote</string>
+    <string name="wan_address">WAN Address</string>
     <string name="ip">ip</string>
     <string name="incoming">Incoming</string>
     <string name="outgoing">outgoing</string>

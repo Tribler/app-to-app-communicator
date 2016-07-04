@@ -24,7 +24,7 @@ public class WanVote {
         } else {
             countMap.put(address, 1);
         }
-        if (countMap.get(address) > max) {
+        if (countMap.get(address) >= max) {
             max = countMap.get(address);
             majorityAddress = address;
         }

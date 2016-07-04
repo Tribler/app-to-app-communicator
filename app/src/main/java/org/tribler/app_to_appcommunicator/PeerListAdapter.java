@@ -1,12 +1,11 @@
 package org.tribler.app_to_appcommunicator;
 
+import android.animation.Animator;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
@@ -37,6 +36,8 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
             holder.mCarrier = (TextView) convertView.findViewById(R.id.carrier);
             holder.mPeerId = (TextView) convertView.findViewById(R.id.peer_id);
             holder.mDestinationAddress = (TextView) convertView.findViewById(R.id.destination_address);
+            holder.mReceivedIndicator = (TextView) convertView.findViewById(R.id.received_indicator);
+            holder.mSentIndicator = (TextView) convertView.findViewById(R.id.sent_indicator);
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -46,7 +47,11 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
 
         holder.mPeerId.setText(peer.getPeerId() == null ? "" : peer.getPeerId().substring(0, 4));
         if (peer.getNetworkOperator() != null) {
-            holder.mCarrier.setText(connectionTypeString(peer.getConnectionType()) + " " + peer.getNetworkOperator());
+            if (peer.getConnectionType() == ConnectivityManager.TYPE_MOBILE) {
+                holder.mCarrier.setText(peer.getNetworkOperator());
+            } else {
+                holder.mCarrier.setText(connectionTypeString(peer.getConnectionType()));
+            }
         } else {
             holder.mCarrier.setText("");
         }
@@ -65,19 +70,19 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         }
         holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress().toString().substring(1), peer.getPort()));
 
-        if (peer.isAnimate()) {
-            animate(holder.mDestinationAddress);
-            peer.setAnimate(false);
+        if (System.currentTimeMillis() - peer.getLastSendTime() < 1000) {
+            animate(holder.mSentIndicator);
+        }
+        if (System.currentTimeMillis() - peer.getLastReceiveTime() < 1000) {
+            animate(holder.mReceivedIndicator);
         }
 
         return convertView;
     }
 
-    private void animate(View view) {
-        view.clearAnimation();
-        Animation animation = new RotateAnimation(0, 360);
-        animation.setDuration(1000);
-        view.startAnimation(animation);
+    private void animate(final View view) {
+        view.setAlpha(1);
+        view.animate().alpha(0).setDuration(500).start();
     }
 
     private String connectionTypeString(int connectionType) {
@@ -95,7 +100,7 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
             case ConnectivityManager.TYPE_VPN:
                 return "VPN";
             default:
-                return "Unknwon";
+                return "Unknown";
         }
     }
 
@@ -104,6 +109,9 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         TextView mCarrier;
         TextView mDestinationAddress;
         TextView mStatusIndicator;
+        TextView mReceivedIndicator;
+        TextView mSentIndicator;
+        Animator animation;
     }
 
 }

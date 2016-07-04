@@ -1,5 +1,6 @@
 package org.tribler.app_to_appcommunicator;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -7,7 +8,7 @@ import java.nio.ByteBuffer;
 /**
  * Created by jaap on 5/19/16.
  */
-public class Peer {
+public class Peer implements Serializable {
     public final static boolean INCOMING = true;
     public final static boolean OUTGOING = false;
 
@@ -22,7 +23,6 @@ public class Peer {
     private long lastSendTime;
     private long lastReceiveTime;
     private long creationTime;
-    private boolean animate;
 
 
     public Peer(String peerId, InetSocketAddress address, boolean incoming) {
@@ -31,15 +31,6 @@ public class Peer {
         this.incoming = incoming;
         this.lastSendTime = System.currentTimeMillis();
         this.creationTime = System.currentTimeMillis();
-        this.animate = false;
-    }
-
-    public boolean isAnimate() {
-        return animate;
-    }
-
-    public void setAnimate(boolean animate) {
-        this.animate = animate;
     }
 
     public long getCreationTime() {
@@ -104,7 +95,6 @@ public class Peer {
     }
 
     public void received(ByteBuffer buffer) {
-        animate = true;
         if (!hasSentData) {
             incoming = INCOMING;
         }
@@ -152,5 +142,13 @@ public class Peer {
         int result = address != null ? address.hashCode() : 0;
         result = 31 * result + (peerId != null ? peerId.hashCode() : 0);
         return result;
+    }
+
+    public long getLastSendTime() {
+        return lastSendTime;
+    }
+
+    public long getLastReceiveTime() {
+        return lastReceiveTime;
     }
 }
