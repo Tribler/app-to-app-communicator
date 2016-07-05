@@ -20,11 +20,16 @@ public class WanVote {
         majorityAddress = null;
     }
 
-    public void vote(InetSocketAddress address) {
+    public boolean vote(InetSocketAddress address) {
+        InetSocketAddress originalAddress = majorityAddress;
         votes.add(address);
         if (votes.size() > MAX_SIZE)
             votes.removeFirst();
         calculateAddress();
+        if (!majorityAddress.equals(originalAddress)) {
+            return true;
+        }
+        return false;
     }
 
     private void calculateAddress() {

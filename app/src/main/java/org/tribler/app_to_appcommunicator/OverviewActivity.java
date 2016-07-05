@@ -418,7 +418,10 @@ public class OverviewActivity extends AppCompatActivity {
             Message message = Message.createFromByteBuffer(data);
             System.out.println("Received " + message);
             String id = message.getPeerId();
-            wanVote.vote(message.getDestination());
+            if (wanVote.vote(message.getDestination())) {
+                System.out.println("Address changed to " + wanVote.getAddress());
+                showLocalIpAddress();
+            }
             setWanvote(wanVote.getAddress().toString());
             Peer peer = getOrMakePeer(id, address, Peer.INCOMING);
             if (peer == null) return;
@@ -574,9 +577,9 @@ public class OverviewActivity extends AppCompatActivity {
      * @param peerId   the peer's id.
      * @param address  the peer's address.
      * @param incoming whether the peer is an incoming peer.
-     * @return
+     * @return the added peer.
      */
-    private Peer addPeer(String peerId, InetSocketAddress address, boolean incoming) {
+    private synchronized Peer addPeer(String peerId, InetSocketAddress address, boolean incoming) {
         if (hashId.equals(peerId)) {
             System.out.println("Not adding self");
             Peer self = null;
@@ -727,14 +730,18 @@ public class OverviewActivity extends AppCompatActivity {
                 newOutgoing.add(peer);
             }
         }
+        boolean changed = false;
         if (!newIncoming.equals(incomingList)) {
+            changed = true;
             incomingList.clear();
             incomingList.addAll(newIncoming);
         }
         if (!newOutgoing.equals(outgoingList)) {
+            changed = true;
             outgoingList.clear();
             outgoingList.addAll(newOutgoing);
         }
+        if (changed) updatePeerStats();
     }
 
     /**

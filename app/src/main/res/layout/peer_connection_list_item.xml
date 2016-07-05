@@ -18,11 +18,11 @@
                 android:text="@string/circle_symbol"
                 android:textAlignment="center"
                 android:textColor="@color/colorAccent"
-                android:textSize="20sp"
-                />
+                android:textSize="20sp"/>
         </TableRow>
 
-        <TableRow>
+        <TableRow
+            android:layout_marginTop="-8sp">
 
             <TextView
                 android:id="@+id/received_indicator"
