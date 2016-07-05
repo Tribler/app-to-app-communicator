@@ -125,10 +125,18 @@
         </TableRow>
     </TableLayout>
 
+    <Button
+        android:layout_alignParentBottom="true"
+        android:id="@+id/exit_button"
+        android:text="@string/exit_prompt"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"/>
+
     <TableLayout
         android:id="@+id/lists"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_above="@id/exit_button"
         android:layout_below="@id/overviewButtons">
 
         <TableRow>

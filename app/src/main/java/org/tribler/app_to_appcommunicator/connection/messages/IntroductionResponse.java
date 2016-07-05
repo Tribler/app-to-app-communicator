@@ -25,7 +25,8 @@ public class IntroductionResponse extends Message {
         this.pex = pex;
         put(CONNECTION_TYPE, connectionType);
         put(INTERNAL_SOURCE, createAddressMap(internalSource));
-        put(INVITEE, createPeerMap(invitee));
+        if (invitee != null)
+            put(INVITEE, createPeerMap(invitee));
         put(NETWORK_OPERATOR, networkOperator);
         List<Map> pexMap = new ArrayList<>();
         for (Peer peer : pex) {
@@ -38,7 +39,9 @@ public class IntroductionResponse extends Message {
         String peerId = (String) map.get(PEER_ID);
         InetSocketAddress internalSource = Message.createMapAddress((Map) map.get(INTERNAL_SOURCE));
         InetSocketAddress destination = Message.createMapAddress((Map) map.get(DESTINATION));
-        Peer invitee = Message.createMapPeer((Map) map.get(INVITEE));
+        Peer invitee = null;
+        if (map.containsKey(INVITEE))
+            invitee = Message.createMapPeer((Map) map.get(INVITEE));
         long connectionType = (long) map.get(CONNECTION_TYPE);
         String networkOperator = (String) map.get(NETWORK_OPERATOR);
         List<Map> pexMaps = (List<Map>) map.get(PEX);

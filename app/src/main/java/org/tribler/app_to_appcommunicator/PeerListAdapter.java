@@ -1,6 +1,5 @@
 package org.tribler.app_to_appcommunicator;
 
-import android.animation.Animator;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.view.LayoutInflater;
@@ -70,10 +69,10 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         }
         holder.mDestinationAddress.setText(String.format("%s:%d", peer.getExternalAddress().toString().substring(1), peer.getPort()));
 
-        if (System.currentTimeMillis() - peer.getLastSendTime() < 1000) {
+        if (System.currentTimeMillis() - peer.getLastSendTime() < 200) {
             animate(holder.mSentIndicator);
         }
-        if (System.currentTimeMillis() - peer.getLastReceiveTime() < 1000) {
+        if (System.currentTimeMillis() - peer.getLastReceiveTime() < 200) {
             animate(holder.mReceivedIndicator);
         }
 
@@ -111,7 +110,6 @@ public class PeerListAdapter extends ArrayAdapter<Peer> {
         TextView mStatusIndicator;
         TextView mReceivedIndicator;
         TextView mSentIndicator;
-        Animator animation;
     }
 
 }

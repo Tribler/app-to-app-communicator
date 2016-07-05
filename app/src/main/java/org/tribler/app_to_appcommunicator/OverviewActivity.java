@@ -11,6 +11,8 @@ import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.util.Patterns;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -53,21 +55,25 @@ public class OverviewActivity extends AppCompatActivity {
     private TextView mActivePeers;
     private TextView mConnectablePeers;
     private TextView mConnectableRatio;
+    private Button mExitButton;
     private PeerListAdapter incomingPeerAdapter;
     private PeerListAdapter outgoingPeerAdapter;
     private DatagramChannel channel;
-    private boolean updatePending = false;
 
     private ArrayList<Peer> peerList;
     private List<Peer> incomingList;
     private List<Peer> outgoingList;
-    private boolean running;
     private String hashId;
     private String networkOperator;
     private WanVote wanVote;
     private int connectionType;
     private ByteBuffer outBuffer;
     private InetSocketAddress internalSourceAddress;
+
+    private Thread sendThread;
+    private Thread listenThread;
+
+    private boolean willExit = false;
 
     /**
      * Initialize views, start send and receive threads if necessary.
@@ -97,17 +103,34 @@ public class OverviewActivity extends AppCompatActivity {
         mActivePeers = (TextView) findViewById(R.id.active_peers);
         mConnectablePeers = (TextView) findViewById(R.id.connectable_peers);
         mConnectableRatio = (TextView) findViewById(R.id.connectable_ratio);
-        running = true;
+        initExitButton();
 
-        addInitialPeer();
-        initPeerLists();
+        try {
+            channel = DatagramChannel.open();
+            channel.socket().bind(new InetSocketAddress(DEFAULT_PORT));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         updateConnectionType();
-        showLocalIpAddress();
+        addInitialPeer();
         startListenThread();
         startSendThread();
+        showLocalIpAddress();
+        initPeerLists();
         if (savedInstanceState != null) {
             updatePeerLists();
         }
+    }
+
+    private void initExitButton() {
+        mExitButton = (Button) findViewById(R.id.exit_button);
+        mExitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                willExit = true;
+                finish();
+            }
+        });
     }
 
     /**
@@ -145,7 +168,8 @@ public class OverviewActivity extends AppCompatActivity {
             showToast("Can't connect: no active network");
             return;
         }
-        ((TextView) findViewById(R.id.connection_type)).setText(cm.getActiveNetworkInfo().getTypeName() + " " + cm.getActiveNetworkInfo().getSubtypeName());
+        ((TextView) findViewById(R.id.connection_type))
+                .setText(cm.getActiveNetworkInfo().getTypeName() + " " + cm.getActiveNetworkInfo().getSubtypeName());
     }
 
     /**
@@ -179,15 +203,10 @@ public class OverviewActivity extends AppCompatActivity {
      * Start the thread send thread responsible for sending a {@link IntroductionRequest} to a random peer every 5 seconds.
      */
     private void startSendThread() {
-        new Thread(new Runnable() {
+        sendThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 do {
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                     try {
                         if (peerList.size() > 0) {
                             Peer peer = getEligiblePeer(null);
@@ -198,11 +217,17 @@ public class OverviewActivity extends AppCompatActivity {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                } while (running);
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                } while (!Thread.interrupted());
                 System.out.println("Send thread stopped");
             }
-        }).start();
-        System.out.println("Thread started");
+        });
+        sendThread.start();
+        System.out.println("Send thread started");
     }
 
     /**
@@ -252,7 +277,8 @@ public class OverviewActivity extends AppCompatActivity {
             if (p.hasReceivedData() && p.getPeerId() != null && p.isAlive())
                 pexPeers.add(p);
         }
-        IntroductionResponse response = new IntroductionResponse(hashId, internalSourceAddress, peer.getAddress(), invitee, connectionType, pexPeers, networkOperator);
+        IntroductionResponse response = new IntroductionResponse(hashId, internalSourceAddress, peer
+                .getAddress(), invitee, connectionType, pexPeers, networkOperator);
         sendMesssage(response, peer);
     }
 
@@ -270,6 +296,7 @@ public class OverviewActivity extends AppCompatActivity {
         outBuffer.flip();
         channel.send(outBuffer, peer.getAddress());
         peer.sentData();
+        updatePeerLists();
     }
 
     /**
@@ -298,14 +325,12 @@ public class OverviewActivity extends AppCompatActivity {
      * InetSocketAddress)} for each incoming datagram.
      */
     private void startListenThread() {
-        new Thread(new Runnable() {
+        listenThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    channel = DatagramChannel.open();
-                    channel.socket().bind(new InetSocketAddress(DEFAULT_PORT));
                     ByteBuffer inputBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-                    while (running) {
+                    while (!Thread.interrupted()) {
                         inputBuffer.clear();
                         SocketAddress address = channel.receive(inputBuffer);
                         inputBuffer.flip();
@@ -315,7 +340,8 @@ public class OverviewActivity extends AppCompatActivity {
                     System.out.println("Listen thread stopped");
                 }
             }
-        }).start();
+        });
+        listenThread.start();
         System.out.println("Listen thread started");
     }
 
@@ -392,10 +418,8 @@ public class OverviewActivity extends AppCompatActivity {
             Message message = Message.createFromByteBuffer(data);
             System.out.println("Received " + message);
             String id = message.getPeerId();
-            if (!peerExists(id)) {
-                wanVote.vote(message.getDestination());
-                setWanvote(wanVote.getAddress().toString());
-            }
+            wanVote.vote(message.getDestination());
+            setWanvote(wanVote.getAddress().toString());
             Peer peer = getOrMakePeer(id, address, Peer.INCOMING);
             if (peer == null) return;
             peer.received(data);
@@ -438,6 +462,7 @@ public class OverviewActivity extends AppCompatActivity {
             }
         } else {
             System.out.println("Peerlist too small, can't handle introduction request");
+            sendIntroductionResponse(peer, null);
         }
     }
 
@@ -554,6 +579,15 @@ public class OverviewActivity extends AppCompatActivity {
     private Peer addPeer(String peerId, InetSocketAddress address, boolean incoming) {
         if (hashId.equals(peerId)) {
             System.out.println("Not adding self");
+            Peer self = null;
+            for (Peer p : peerList) {
+                if (p.getAddress().equals(wanVote.getAddress()))
+                    self = p;
+            }
+            if (self != null) {
+                peerList.remove(self);
+                System.out.println("Removed self");
+            }
             return null;
         }
         if (wanVote.getAddress() != null && wanVote.getAddress().equals(address)) {
@@ -649,8 +683,6 @@ public class OverviewActivity extends AppCompatActivity {
      * Update the showed peer lists.
      */
     private void updatePeerLists() {
-        if (updatePending) return;
-        updatePending = true;
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -658,7 +690,6 @@ public class OverviewActivity extends AppCompatActivity {
                 incomingPeerAdapter.notifyDataSetChanged();
                 outgoingPeerAdapter.notifyDataSetChanged();
                 updatePeerStats();
-                updatePending = false;
             }
         });
     }
@@ -717,10 +748,28 @@ public class OverviewActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStop() {
-        running = false;
+    protected void onDestroy() {
+        listenThread.interrupt();
+        sendThread.interrupt();
         channel.socket().close();
+        try {
+            channel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onStop() {
+        if (!willExit)
+            showToast("App will continue in background.");
         super.onStop();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     @Override

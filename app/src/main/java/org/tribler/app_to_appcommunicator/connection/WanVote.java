@@ -2,6 +2,7 @@ package org.tribler.app_to_appcommunicator.connection;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -10,25 +11,38 @@ import java.util.Map;
  * Created by jaap on 6/1/16.
  */
 public class WanVote {
-    Map<InetSocketAddress, Integer> countMap = new HashMap<>();
+    private final static int MAX_SIZE = 3;
+    LinkedList<InetSocketAddress> votes;
     private InetSocketAddress majorityAddress;
-    private int max;
 
     public WanVote() {
-        countMap = new HashMap<>();
+        votes = new LinkedList<>();
         majorityAddress = null;
-        max = 0;
     }
 
     public void vote(InetSocketAddress address) {
-        if (countMap.containsKey(address)) {
-            countMap.put(address, countMap.get(address) + 1);
-        } else {
-            countMap.put(address, 1);
+        votes.add(address);
+        if (votes.size() > MAX_SIZE)
+            votes.removeFirst();
+        calculateAddress();
+    }
+
+    private void calculateAddress() {
+        HashMap<InetSocketAddress, Integer> map = new HashMap<>();
+        for (InetSocketAddress vote : votes) {
+            if (map.containsKey(vote)) {
+                map.put(vote, map.get(vote) + 1);
+            } else {
+                map.put(vote, 1);
+            }
         }
-        if (countMap.get(address) >= max) {
-            max = countMap.get(address);
-            majorityAddress = address;
+        int max = 0;
+        majorityAddress = null;
+        for (Map.Entry<InetSocketAddress, Integer> entry : map.entrySet()) {
+            if (entry.getValue() >= max) {
+                max = entry.getValue();
+                majorityAddress = entry.getKey();
+            }
         }
     }
 

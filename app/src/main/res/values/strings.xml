@@ -20,4 +20,5 @@
     <string name="connectable_ratio">Connectable\nratio</string>
     <string name="connectable_peers">Connectable\nPeers</string>
     <string name="active_peers">Active\nPeers</string>
+    <string name="exit_prompt">Exit</string>
 </resources>
