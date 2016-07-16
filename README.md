@@ -5,7 +5,7 @@ App-to-app communicator is an Android app to test the connectability of mobile d
 
 When started, the app connects to a hardcoded connectable peer, through peer exchange a list of peers which are actively connected to the network is retrieved. Every 5 seconds, an introduction request to a random peer is sent. If received: the receiving peer sends back an introduction response containing actively connected PEX peers, and a puncture request is sent to another randomly chosen peer to connect with the initial peer through rendez-vous. The network stays alive, and statistics of the connected peers are displayed.
 
-[![Screenshot] (https://raw.githubusercontent.com/Jaapp-/app-to-app-communicator/master/img/Screenshot.png)]
+![Screenshot] (https://raw.githubusercontent.com/Jaapp-/app-to-app-communicator/master/img/Screenshot.png)
 
 ## UDP packet types
 Several UDP messages are sent between peers. Every message includes the unique id of the sending peer, and the external IP address of the destination peer.
