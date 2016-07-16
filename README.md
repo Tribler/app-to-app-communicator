@@ -5,14 +5,9 @@ App-to-app communicator is an Android app to test the connectability of mobile d
 
 When started, the app connects to a hardcoded connectable peer, through peer exchange a list of peers which are actively connected to the network is retrieved. Every 5 seconds, an introduction request to a random peer is sent. If received: the receiving peer sends back an introduction response containing actively connected PEX peers, and a puncture request is sent to another randomly chosen peer to connect with the initial peer through rendez-vous. The network stays alive, and statistics of the connected peers are displayed.
 
-## Building
-This app is made with Android studio, it can be imported, or compiled manually:
+[![Screenshot] (https://raw.githubusercontent.com/Jaapp-/app-to-app-communicator/master/img/Screenshot.png)]
 
-<code>./gradlew build</code>
-
-The built APK can be found in <code>app/build/outputs/apk/</code>
-
-## Messages
+## UDP packet types
 Several UDP messages are sent between peers. Every message includes the unique id of the sending peer, and the external IP address of the destination peer.
 
 ### Introduction request (peer A -> B)
@@ -27,5 +22,16 @@ A request including a peer to puncture. Upon reception, a puncture is send to th
 ### Puncture (peer C -> A)
 A puncture is send to a given peer to punch a hole in the NAT on the sending peer's side. This allows the receiving peer to connect to the sending peer.
 
+## Local IP
+The local IP address is obtained through a call to Android Network Info and displayed within the app.
 
-The related Tribler issue can be found [here](https://github.com/Tribler/tribler/issues/2131).
+## WAN address
+Every UDP packet contains the external IP address of its destination, the client gathers these IP addresses to decide its own WAN address through a majority vote between the last incoming packets.
+
+
+## Building
+This app is made with Android studio, it can be imported, or compiled manually:
+
+<code>./gradlew build</code>
+
+The built APK can be found in <code>app/build/outputs/apk/</code>
