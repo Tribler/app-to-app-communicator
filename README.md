@@ -1,33 +1,50 @@
 # App-to-app communicator
-NATs and firewalls of ISPs on cellular network can prevent making direct connections between devices, app-to-app communicator connects to a swarm to map connectability in the wild.
 
-App-to-app communicator is an Android app to test the connectability of mobile devices over cellular networks. Rendezvous through UDP puncturing is used to punch holes through NATs between peers.
+## Towards indestructable apps
 
-When started, the app connects to a hardcoded connectable peer, through peer exchange a list of peers which are actively connected to the network is retrieved. Every 5 seconds, an introduction request to a random peer is sent. If received: the receiving peer sends back an introduction response containing actively connected PEX peers, and a puncture request is sent to another randomly chosen peer to connect with the initial peer through rendez-vous. The network stays alive, and statistics of the connected peers are displayed.
+The Tribler group at the TU Delft has done research about and developed projects around the field of decentralisation on the Internet over the past 11 years. Projects include [Tribler](https://tribler.org/), the Tor-inspired torrent client, blockchain technologies and the [self-compiling app](https://github.com/Tribler/self-compile-Android).
+
+The Internet has shifted from PC to mobile, App-to-app communicator creates a decentralized network of mobile apps that can keep themselves connected without central authority.
+This is made hard by NATs and firewalls of ISPs on cellular networks which can prevent making direct connections between devices, app-to-app communicator tries to get around these barriers through NAT puncturing.
 
 ![Screenshot] (https://raw.githubusercontent.com/Jaapp-/app-to-app-communicator/master/img/Screenshot.png)
 
-## UDP packet types
+## Peer discovery
+1. When peer A starts App-to-app communicator, a connection request to peer B is made.
+2. Upon connection peer B chooses another connected peer, peer C, and sends the address of peer C to peer A as introduction response message.
+3. Peer B sends peer C a puncture request.
+4. Peer C sends a puncture message to peer A to punch a hole in its own NAT.
+
+![Peer walking](https://github.com/Jaapp-/app-to-app-communicator/blob/master/img/walk.png)
+
+### UDP packet types
 Several UDP messages are sent between peers. Every message includes the unique id of the sending peer, and the external IP address of the destination peer.
 
-### Introduction request (peer A -> B)
-An introduction request sent every 5 seconds to a random active peer.
+#### Introduction request (peer A -> B)
+An introduction request sent every 5 seconds to a random actively connected peer.
 
-### Introduction response (peer B -> A)
-An introduction response is returned upon receiving an introduction request. A list of actively connected peers is returned, along with one random invitee. A puncture request is send to the invitee.
+#### Introduction response (peer B -> A)
+An introduction response is returned upon receiving an introduction request. A list of actively connected peers is returned, along with one random invitee. A puncture request is sent to the invitee.
 
-### Puncture Request (peer B -> C)
-A request including a peer to puncture. Upon reception, a puncture is send to the given peer.
+#### Puncture Request (peer B -> C)
+A request including a peer to puncture. Upon reception, a puncture is sent to the given peer.
 
-### Puncture (peer C -> A)
-A puncture is send to a given peer to punch a hole in the NAT on the sending peer's side. This allows the receiving peer to connect to the sending peer.
+#### Puncture (peer C -> A)
+A puncture is sent to peer A to punch a hole the peer C's NAT. This allows peer A to connect to peer C.
+
+### Identification
+The app generates a unique identifier on its first launch. This peer ID is sent with every outgoing message, and is used to identify peers so that the app can differentiate between UDP packets from different peers which use the same address.
 
 ## Local IP
 The local IP address is obtained through a call to Android Network Info and displayed within the app.
 
-## WAN address
-Every UDP packet contains the external IP address of its destination, the client gathers these IP addresses to decide its own WAN address through a majority vote between the last incoming packets.
+## IPv4 voting
+An Android device doesn't know what its own IPv4 is.
+Each peer has its own WAN address, or external IP address, but a peer has no way of knowing its own WAN address without the help of others. 
 
+Each message contains the WAN address of its destination. The app determines what the most likely external IP is based on the reported IPv4 addresses. When there's conflicting reports, and devices claim to see different external IPs, our app relies on the majority judgement.
+
+As IPv4 addresses can change quickly, we only look at just the last 3 reports.
 
 ## Building
 This app is made with Android studio, it can be imported, or compiled manually:
