@@ -1,8 +1,10 @@
-# App-to-app communicator
+# Towards indestructable apps
 
-## Towards indestructable apps
+We envision a new Internet infrastructure build around people and their phones. This infrastructure should not rely on any server, trust any entity or require any infrastructure. The Tribler research group creates attack-resilient sharing software, including no-Internet-needed apps.
 
-The Tribler group at the TU Delft has done research about and developed projects around the field of decentralisation on the Internet over the past 11 years. Projects include [Tribler](https://tribler.org/), the Tor-inspired torrent client, blockchain technologies and the [self-compiling app](https://github.com/Tribler/self-compile-Android).
+## App-to-app communicator
+
+The Tribler group at the TU Delft has done research about and developed projects around the field of decentralisation on the Internet over the past 11 years. Projects include [Tribler](https://tribler.org/), our own torrents-only anon network with [Tor messages](https://github.com/Tribler/tribler/wiki/Anonymous-Downloading-and-Streaming-specifications), blockchain technologies and the [self-compiling app](https://github.com/Tribler/self-compile-Android).
 
 The Internet has shifted from PC to mobile, App-to-app communicator creates a decentralized network of mobile apps that can keep themselves connected without central authority.
 This is made hard by NATs and firewalls of ISPs on cellular networks which can prevent making direct connections between devices, app-to-app communicator tries to get around these barriers through NAT puncturing.
