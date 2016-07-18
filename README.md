@@ -1,6 +1,6 @@
 # Towards indestructable apps
 
-We envision a new Internet infrastructure build around people and their phones. This infrastructure should not rely on any server, require no infrastructure, and trust no entity except itself. The Tribler research group creates attack-resilient sharing software, including no-Internet-needed apps.
+We envision a new Internet infrastructure built around people and their phones. This infrastructure should not rely on any server, require no infrastructure, and trust no entity except itself. The Tribler research group creates attack-resilient sharing software, including no-Internet-needed apps.
 
 ## App-to-app communicator
 
@@ -26,16 +26,16 @@ The Tribler group at the TU Delft has done research about and developed projects
 Several UDP messages are sent between peers. Every message includes the unique id of the sending peer, and the external IP address of the destination peer.
 
 #### Introduction request (peer A -> B)
-An introduction request sent every 5 seconds to a random actively connected peer.
+An introduction request is sent every 5 seconds to a random actively connected peer.
 
 #### Introduction response (peer B -> A)
-An introduction response is returned upon receiving an introduction request. A list of actively connected peers is returned, along with one random invitee. A puncture request is sent to the invitee.
+An introduction response is returned upon receiving an introduction request. A list of actively connected peers is returned, along with one random invitee. At the same time a puncture request is sent to the invitee.
 
 #### Puncture Request (peer B -> C)
-A request including a peer to puncture. Upon reception, a puncture is sent to the given peer.
+A request including a peer to puncture. Upon reception, a puncture message is sent to the given peer.
 
 #### Puncture (peer C -> A)
-A puncture is sent to peer A to punch a hole the peer C's NAT. This allows peer A to connect to peer C.
+A puncture message is sent to peer A to punch a hole peer C's NAT. This allows peer A to connect to peer C.
 
 ### Identification
 The app generates a unique identifier on its first launch. This peer ID is sent with every outgoing message, and is used to identify peers so that the app can differentiate between UDP packets from different peers which use the same address.
