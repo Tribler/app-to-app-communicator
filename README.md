@@ -7,6 +7,8 @@ The Tribler group at the TU Delft has done research about and developed projects
 The Internet has shifted from PC to mobile, App-to-app communicator creates a decentralized network of mobile apps that can keep themselves connected without central authority.
 This is made hard by NATs and firewalls of ISPs on cellular networks which can prevent making direct connections between devices, app-to-app communicator tries to get around these barriers through NAT puncturing.
 
+## [**Download Beta from Play Store**](https://play.google.com/apps/testing/org.tribler.app_to_appcommunicator)
+
 ![Screenshot] (https://raw.githubusercontent.com/Jaapp-/app-to-app-communicator/master/img/Screenshot.png)
 
 ## Peer discovery
