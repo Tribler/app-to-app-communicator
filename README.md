@@ -1,6 +1,6 @@
 # Towards indestructable apps
 
-We envision a new Internet infrastructure build around people and their phones. This infrastructure should not rely on any server, trust any entity or require any infrastructure. The Tribler research group creates attack-resilient sharing software, including no-Internet-needed apps.
+We envision a new Internet infrastructure build around people and their phones. This infrastructure should not rely on any server, require no infrastructure, and trust no entity except itself. The Tribler research group creates attack-resilient sharing software, including no-Internet-needed apps.
 
 ## App-to-app communicator
 
