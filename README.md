@@ -1,6 +1,6 @@
 # Towards indestructable pure P2P apps
 
-We envision a new Internet infrastructure built around people and their phones. This infrastructure should not rely on any server, require no infrastructure, and trust no entity except itself. The Tribler research group creates attack-resilient sharing software, including no-Internet-needed apps. We created a first pure P2P app.
+We envision a new Internet infrastructure built around people and their phones. This infrastructure should not rely on any server, require no infrastructure, and trust no entity except itself. The Tribler research group creates attack-resilient sharing software, including no-Internet-needed apps. We created a first pure P2P app - functional prototype only.
 
 ## App-to-app communicator
 
