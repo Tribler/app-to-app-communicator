@@ -22,6 +22,9 @@ The Tribler group at the TU Delft has done research about and developed projects
 
 ![Peer walking](https://github.com/Jaapp-/app-to-app-communicator/blob/master/img/walk.png)
 
+When starting the app-to-app communicator a connection is made to a hard-coded connectable bootstrap phone.
+For this prototype only a single hard-coded bootstrap IPv4 is used. Multiple phones, various bootstrap servers, or local discovery broadcasts are possible for future work. 
+
 ### UDP packet types
 Several UDP messages are sent between peers. Every message includes the unique id of the sending peer, and the external IP address of the destination peer.
 
@@ -50,6 +53,7 @@ Each peer has its own WAN address, or external IP address, but a peer has no way
 Each message contains the WAN address of its destination. The app determines what the most likely external IP is based on the reported IPv4 addresses. When there's conflicting reports, and devices claim to see different external IPs, our app relies on the majority judgement.
 
 As IPv4 addresses can change quickly, we only look at just the last 3 reports.
+
 
 ## Building
 This app is made with Android studio, it can be imported, or compiled manually:
