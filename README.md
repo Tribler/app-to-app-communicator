@@ -14,6 +14,8 @@ The Tribler group at the TU Delft has done research about and developed projects
 
 ## [**Download Beta from Play Store**](https://play.google.com/apps/testing/org.tribler.app_to_appcommunicator)
 
+Within 15 seconds this app should find the nextwork and discover the first peer. See screenshot below.
+
 ![Screenshot] (https://raw.githubusercontent.com/Jaapp-/app-to-app-communicator/master/img/Screenshot.png)
 
 ## Peer discovery
