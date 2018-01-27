@@ -96,7 +96,7 @@ public class OverviewActivity extends AppCompatActivity {
         incomingList = new ArrayList<>();
         outgoingList = new ArrayList<>();
         hashId = getId();
-        if(hashId.toString().length() > 4){
+        if(hashId.toString().length() >= 4){
             ((TextView) findViewById(R.id.peer_id)).setText(hashId.toString().substring(0, 4));
         } else {
             ((TextView) findViewById(R.id.peer_id)).setText(hashId.toString());
